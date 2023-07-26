@@ -1,0 +1,6 @@
+name: pyfolio
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - urwid
