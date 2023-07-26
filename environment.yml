@@ -1,4 +1,4 @@
-name: pyfolio
+name: urwid-assets
 channels:
   - defaults
   - conda-forge
