@@ -1,26 +1,38 @@
 import urwid
+import data
 
-COLUMN_WEIGHTS = [2, 1, 1]
+COLUMN_WEIGHTS: list[int] = [2, 1, 1, 1]
+
+ColumnTuple = tuple[str, int, urwid.Widget]
 
 
-def get_field(fields, index):
+def get_field(fields: list[urwid.Widget], index: int) -> urwid.Widget:
     try:
         return fields[index]
     except IndexError:
         return BlankField()
 
 
-def column_tuple(fields, index):
-    return 'weight', COLUMN_WEIGHTS[index], get_field(fields, index)
+def column_tuple(weight: int, field: urwid.Widget) -> ColumnTuple:
+    return 'weight', weight, field
+
+
+def columns(fields: list[urwid.Widget]) -> list[ColumnTuple]:
+    return [column_tuple(weight, get_field(fields, index))
+            for index, weight in enumerate(COLUMN_WEIGHTS)]
+
+
+def format_amount(amount: int) -> str:
+    return str(amount)
 
 
 class BlankField(urwid.Text):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(u'')
 
 
 class ColumnLabel(urwid.Columns):
-    def __init__(self, text):
+    def __init__(self, text: str) -> None:
         super().__init__([
             (2, urwid.Text(u'| ')),
             urwid.Text(text),
@@ -29,7 +41,7 @@ class ColumnLabel(urwid.Columns):
 
 
 class Field(urwid.WidgetWrap):
-    def __init__(self, text):
+    def __init__(self, text: str) -> None:
         super().__init__(
             urwid.AttrMap(urwid.Button(text),
                           None, focus_map='reversed')
@@ -37,73 +49,35 @@ class Field(urwid.WidgetWrap):
 
 
 class ColumnLayout(urwid.Columns):
-    def __init__(self, fields):
-        super().__init__([
-            column_tuple(fields, 0),
-            column_tuple(fields, 1),
-            column_tuple(fields, 2),
-        ])
+    def __init__(self, fields: list[urwid.Widget]) -> None:
+        super().__init__(columns(fields))
 
 
 class Row(ColumnLayout):
-    def __init__(self, index):
+    def __init__(self, asset: data.Asset) -> None:
         super().__init__([
-            Field(u'row %s - column 1' % index),
-            Field(u'row %s - column 2' % index),
-            Field(u'row %s - column 3' % index),
+            Field(asset.name),
+            Field(format_amount(asset.amount)),
         ])
 
 
 class Table(urwid.ListBox):
-    def __init__(self):
-        super().__init__(urwid.SimpleFocusListWalker([
-            Row(0),
-            Row(1),
-            Row(2),
-            Row(3),
-            Row(4),
-            Row(5),
-            Row(6),
-            Row(7),
-            Row(8),
-            Row(9),
-            Row(10),
-            Row(11),
-            Row(12),
-            Row(13),
-            Row(14),
-            Row(15),
-            Row(16),
-            Row(17),
-            Row(18),
-            Row(19),
-            Row(20),
-            Row(21),
-            Row(22),
-            Row(23),
-            Row(24),
-            Row(25),
-            Row(26),
-            Row(27),
-            Row(28),
-            Row(29),
-            Row(30),
-            Row(31),
-            Row(32),
-        ]))
+    def __init__(self, current: list[data.Asset]) -> None:
+        super().__init__(urwid.SimpleFocusListWalker([Row(asset) for asset in current]))
 
 
 class ColumnLabels(ColumnLayout):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__([
-            ColumnLabel(u'column 1'),
-            ColumnLabel(u'column 2'),
-            ColumnLabel(u'column 3'),
+            ColumnLabel(u'Name'),
+            ColumnLabel(u'Amount'),
+            ColumnLabel(u'Unit Price'),
+            ColumnLabel(u'Value'),
         ])
 
 
 class Header(urwid.Pile):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__([
             ColumnLabels(),
             urwid.Divider(u'-'),
@@ -111,12 +85,12 @@ class Header(urwid.Pile):
 
 
 class Instructions(urwid.Text):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(u'q - exit')
 
 
 class Footer(urwid.Pile):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__([
             urwid.Divider(u'-'),
             Instructions(),
@@ -124,9 +98,9 @@ class Footer(urwid.Pile):
 
 
 class Layout(urwid.Frame):
-    def __init__(self):
+    def __init__(self, assets: data.Assets) -> None:
         super().__init__(
-            Table(),
+            Table(assets.current),
             Header(),
             Footer()
         )
