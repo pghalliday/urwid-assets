@@ -3,6 +3,7 @@ import data
 from decimal import Decimal
 
 COLUMN_WEIGHTS: list[int] = [2, 1, 1, 1]
+LOADING_TEXT: str = u'Loading...'
 
 ColumnTuple = tuple[str, int, urwid.Widget]
 
@@ -32,7 +33,12 @@ class BlankField(urwid.Text):
         super().__init__(u'')
 
 
-class ColumnLabel(urwid.Columns):
+class SelectableField(urwid.Button):
+    def __init__(self, text: str) -> None:
+        super().__init__(text)
+
+
+class Field(urwid.Columns):
     def __init__(self, text: str) -> None:
         super().__init__([
             (2, urwid.Text(u'| ')),
@@ -41,39 +47,35 @@ class ColumnLabel(urwid.Columns):
         ])
 
 
-class Field(urwid.WidgetWrap):
-    def __init__(self, text: str) -> None:
-        super().__init__(
-            urwid.AttrMap(urwid.Button(text),
-                          None, focus_map='reversed')
-        )
-
-
 class ColumnLayout(urwid.Columns):
     def __init__(self, fields: list[urwid.Widget]) -> None:
         super().__init__(columns(fields))
 
 
-class Row(ColumnLayout):
+class Row(urwid.WidgetWrap):
     def __init__(self, asset: data.Asset) -> None:
-        super().__init__([
-            Field(asset.name),
+        super().__init__(urwid.AttrMap(ColumnLayout([
+            SelectableField(asset.name),
             Field(format_amount(asset.amount)),
-        ])
+            Field(LOADING_TEXT),
+            Field(LOADING_TEXT),
+        ]), None, focus_map='reversed'))
 
 
 class Table(urwid.ListBox):
     def __init__(self, current: list[data.Asset]) -> None:
-        super().__init__(urwid.SimpleFocusListWalker([Row(asset) for asset in current]))
+        super().__init__(urwid.SimpleFocusListWalker(
+            [Row(asset) for asset in current]
+        ))
 
 
 class ColumnLabels(ColumnLayout):
     def __init__(self) -> None:
         super().__init__([
-            ColumnLabel(u'Name'),
-            ColumnLabel(u'Amount'),
-            ColumnLabel(u'Unit Price'),
-            ColumnLabel(u'Value'),
+            Field(u'Name'),
+            Field(u'Amount'),
+            Field(u'Unit Price'),
+            Field(u'Value'),
         ])
 
 
