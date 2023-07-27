@@ -1,8 +1,9 @@
-from typing import Any
+from decimal import Decimal
 
 import urwid
+
 import data
-from decimal import Decimal
+from ui_manager import UIManager
 
 COLUMN_WEIGHTS: list[int] = [2, 1, 1, 1]
 LOADING_TEXT: str = u'Loading...'
@@ -148,9 +149,9 @@ class Footer(urwid.Pile):
 
 
 class Layout(urwid.Frame):
-    def __init__(self, assets: data.Assets) -> None:
+    def __init__(self, current: list[data.Asset], ui_manager: UIManager) -> None:
         super().__init__(
-            Table(assets.current),
+            Table(current),
             Header(),
             Footer()
         )
