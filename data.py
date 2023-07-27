@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from uuid import UUID
+from decimal import Decimal
 
 
 @dataclass
 class Asset:
     id: UUID
     name: str
-    amount: int
+    amount: Decimal
     price_source: str
 
 
@@ -14,8 +15,8 @@ class Asset:
 class AssetSnapshot:
     id: UUID
     name: str
-    amount: int
-    price: int
+    amount: Decimal
+    price: Decimal
 
 
 @dataclass

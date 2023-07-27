@@ -1,5 +1,6 @@
 import urwid
 import data
+from decimal import Decimal
 
 COLUMN_WEIGHTS: list[int] = [2, 1, 1, 1]
 
@@ -22,8 +23,8 @@ def columns(fields: list[urwid.Widget]) -> list[ColumnTuple]:
             for index, weight in enumerate(COLUMN_WEIGHTS)]
 
 
-def format_amount(amount: int) -> str:
-    return str(amount)
+def format_amount(amount: Decimal) -> str:
+    return '{}'.format(amount)
 
 
 class BlankField(urwid.Text):

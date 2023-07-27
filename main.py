@@ -1,5 +1,6 @@
 from random import randrange
 from uuid import uuid1
+from decimal import Decimal
 
 import ui
 import data
@@ -9,7 +10,7 @@ def asset(index: int) -> data.Asset:
     return data.Asset(
         id=uuid1(),
         name=u'Asset %s' % index,
-        amount=randrange(1, 1000000),
+        amount=Decimal(randrange(1, 10000000000)) / 10000,
         price_source=u'test'
     )
 
