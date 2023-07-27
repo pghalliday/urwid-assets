@@ -1,3 +1,5 @@
+from typing import Any
+
 import urwid
 import data
 from decimal import Decimal
@@ -33,9 +35,54 @@ class BlankField(urwid.Text):
         super().__init__(u'')
 
 
-class SelectableField(urwid.Button):
-    def __init__(self, text: str) -> None:
-        super().__init__(text)
+class AssetEditPopUp(urwid.WidgetWrap):
+    signals = [
+        'apply',
+        'cancel',
+    ]
+
+    def __init__(self, name: str, amount: Decimal, price_source: str) -> None:
+        super().__init__(urwid.AttrMap(urwid.Filler(urwid.Pile([
+            urwid.Text(name),
+            urwid.Text(format_amount(amount)),
+            urwid.Text(price_source),
+            urwid.Button(u'Cancel', self.cancel),
+            urwid.Button(u'Apply', self.apply),
+        ])), 'popup-bg'))
+
+    def apply(self, _):
+        self._emit('apply')
+
+    def cancel(self, _):
+        self._emit('cancel')
+
+
+class AssetSelector(urwid.PopUpLauncher):
+    def __init__(self, text: str, asset: data.Asset) -> None:
+        super().__init__(urwid.Button(text, self.edit_asset))
+        self.asset = asset
+
+    def edit_asset(self, _) -> None:
+        self.open_pop_up()
+
+    def create_pop_up(self):
+        pop_up = AssetEditPopUp(
+            self.asset.name,
+            self.asset.amount,
+            self.asset.price_source,
+        )
+        urwid.connect_signal(pop_up, 'apply', self.apply_edit)
+        urwid.connect_signal(pop_up, 'cancel', self.cancel_edit)
+        return pop_up
+
+    def get_pop_up_parameters(self):
+        return {'left': 0, 'top': 0, 'overlay_width': 32, 'overlay_height': 5}
+
+    def apply_edit(self, _):
+        self.close_pop_up()
+
+    def cancel_edit(self, _):
+        self.close_pop_up()
 
 
 class Field(urwid.Columns):
@@ -55,7 +102,7 @@ class ColumnLayout(urwid.Columns):
 class Row(urwid.WidgetWrap):
     def __init__(self, asset: data.Asset) -> None:
         super().__init__(urwid.AttrMap(ColumnLayout([
-            SelectableField(asset.name),
+            AssetSelector(asset.name, asset),
             Field(format_amount(asset.amount)),
             Field(LOADING_TEXT),
             Field(LOADING_TEXT),
