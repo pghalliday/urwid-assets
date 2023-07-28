@@ -1,9 +1,12 @@
+from dataclasses import dataclass
 from decimal import Decimal
 
 import urwid
+from injector import inject, singleton
 
-import data
-from ui_manager import UIManager
+from controllers.data_controller import DataController
+from controllers.ui_controller import UIController
+from models.models import Asset
 
 COLUMN_WEIGHTS: list[int] = [2, 1, 1, 1]
 LOADING_TEXT: str = u'Loading...'
@@ -36,7 +39,10 @@ class BlankField(urwid.Text):
         super().__init__(u'')
 
 
-class AssetEditPopUp(urwid.WidgetWrap):
+class AssetEditDialog(urwid.WidgetWrap):
+    name: str
+    amount: Decimal
+    price_source: str
     signals = [
         'apply',
         'cancel',
@@ -58,32 +64,37 @@ class AssetEditPopUp(urwid.WidgetWrap):
         self._emit('cancel')
 
 
-class AssetSelector(urwid.PopUpLauncher):
-    def __init__(self, text: str, asset: data.Asset) -> None:
-        super().__init__(urwid.Button(text, self.edit_asset))
+class AssetSelector(urwid.Button):
+    def __init__(self, text: str, asset: Asset, ui_controller: UIController) -> None:
+        super().__init__(text, self.edit_asset)
         self.asset = asset
+        self.ui_controller = ui_controller
 
     def edit_asset(self, _) -> None:
-        self.open_pop_up()
-
-    def create_pop_up(self):
-        pop_up = AssetEditPopUp(
+        dialog = AssetEditDialog(
             self.asset.name,
             self.asset.amount,
             self.asset.price_source,
         )
-        urwid.connect_signal(pop_up, 'apply', self.apply_edit)
-        urwid.connect_signal(pop_up, 'cancel', self.cancel_edit)
-        return pop_up
-
-    def get_pop_up_parameters(self):
-        return {'left': 0, 'top': 0, 'overlay_width': 32, 'overlay_height': 5}
+        urwid.connect_signal(dialog, 'apply', self.apply_edit)
+        urwid.connect_signal(dialog, 'cancel', self.cancel_edit)
+        self.ui_controller.open_dialog(dialog)
 
     def apply_edit(self, _):
-        self.close_pop_up()
+        self.ui_controller.close_dialog()
 
     def cancel_edit(self, _):
-        self.close_pop_up()
+        self.ui_controller.close_dialog()
+
+
+@singleton
+@inject
+@dataclass
+class AssetSelectorFactory:
+    ui_controller: UIController
+
+    def create(self, text: str, asset: Asset):
+        return AssetSelector(text, asset, self.ui_controller)
 
 
 class Field(urwid.Columns):
@@ -101,19 +112,32 @@ class ColumnLayout(urwid.Columns):
 
 
 class Row(urwid.WidgetWrap):
-    def __init__(self, asset: data.Asset) -> None:
+    def __init__(self, asset: Asset, asset_selector_factory: AssetSelectorFactory) -> None:
         super().__init__(urwid.AttrMap(ColumnLayout([
-            AssetSelector(asset.name, asset),
+            asset_selector_factory.create(asset.name, asset),
             Field(format_amount(asset.amount)),
             Field(LOADING_TEXT),
             Field(LOADING_TEXT),
         ]), None, focus_map='reversed'))
 
 
+@singleton
+@inject
+@dataclass
+class RowFactory:
+    asset_selector_factory: AssetSelectorFactory
+
+    def create(self, asset):
+        return Row(asset, self.asset_selector_factory)
+
+
 class Table(urwid.ListBox):
-    def __init__(self, current: list[data.Asset]) -> None:
+    @inject
+    def __init__(self, data_controller: DataController, row_factory: RowFactory) -> None:
         super().__init__(urwid.SimpleFocusListWalker(
-            [Row(asset) for asset in current]
+            [row_factory.create(asset)
+             for asset
+             in data_controller.get_current()]
         ))
 
 
@@ -148,10 +172,12 @@ class Footer(urwid.Pile):
         ])
 
 
-class Layout(urwid.Frame):
-    def __init__(self, current: list[data.Asset], ui_manager: UIManager) -> None:
+class CurrentView(urwid.Frame):
+    @singleton
+    @inject
+    def __init__(self, table: Table, header: Header, footer: Footer) -> None:
         super().__init__(
-            Table(current),
-            Header(),
-            Footer()
+            table,
+            header,
+            footer,
         )

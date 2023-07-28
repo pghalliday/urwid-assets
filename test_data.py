@@ -2,7 +2,7 @@ from decimal import Decimal
 from random import randrange
 from uuid import uuid1
 
-from data import Asset, Snapshot, Assets
+from models.models import Asset, Snapshot, Assets
 
 
 def asset(index: int) -> Asset:

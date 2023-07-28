@@ -1,11 +1,9 @@
-from application import Application
-from data_manager import DataManager
-from test_data import ASSETS
-from ui_manager import UIManager
+from injector import Injector
 
-data_manager = DataManager(ASSETS)
-ui_manager = UIManager()
-application = Application(data_manager, ui_manager)
+from application import Application
+from application_module import ApplicationModule
 
 if __name__ == '__main__':
+    injector = Injector(ApplicationModule())
+    application = injector.get(Application)
     application.start()

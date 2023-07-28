@@ -1,10 +1,14 @@
 from dataclasses import dataclass
 
-from data import Asset, Assets
+from injector import singleton, inject
+
+from models.models import Asset, Assets
 
 
+@singleton
+@inject
 @dataclass
-class DataManager:
+class DataController:
     assets: Assets
 
     def get_current(self) -> list[Asset]:

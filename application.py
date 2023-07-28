@@ -1,16 +1,17 @@
 from dataclasses import dataclass
 
+from injector import inject
 from urwid import ExitMainLoop, MainLoop
 
-from data_manager import DataManager
-from ui_manager import UIManager
-from widgets import Layout
+from controllers.ui_controller import UIController
+from views.current_view import CurrentView
 
 
+@inject
 @dataclass
 class Application:
-    data_manager: DataManager
-    ui_manager: UIManager
+    ui_manager: UIController
+    current_view: CurrentView
 
     def global_keys(self, key: str) -> None:
         if key in ('q', 'Q'):
@@ -20,8 +21,7 @@ class Application:
         raise ExitMainLoop()
 
     def start(self) -> None:
-        self.ui_manager.register_view('current', lambda current: Layout(current, self.ui_manager))
-        self.ui_manager.switch_to_view('current', self.data_manager.get_current())
+        self.ui_manager.set_view(self.current_view)
         MainLoop(self.ui_manager,
                  palette=[
                      ('reversed', 'standout', ''),
