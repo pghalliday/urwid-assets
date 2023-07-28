@@ -10,7 +10,7 @@ from views.current_view import CurrentView
 @inject
 @dataclass
 class Application:
-    ui_manager: UIController
+    ui_controller: UIController
     current_view: CurrentView
 
     def global_keys(self, key: str) -> None:
@@ -21,8 +21,8 @@ class Application:
         raise ExitMainLoop()
 
     def start(self) -> None:
-        self.ui_manager.set_view(self.current_view)
-        MainLoop(self.ui_manager,
+        self.ui_controller.set_view(self.current_view)
+        MainLoop(self.ui_controller,
                  palette=[
                      ('reversed', 'standout', ''),
                      ('popup-bg', 'white', 'dark blue'),

@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
-import urwid
 from injector import inject, singleton
+from urwid import Widget, Text, WidgetWrap, AttrMap, Filler, Pile, Button, connect_signal, Columns, ListBox, \
+    SimpleFocusListWalker, Divider, Frame
 
 from controllers.data_controller import DataController
 from controllers.ui_controller import UIController
@@ -11,21 +12,21 @@ from models.models import Asset
 COLUMN_WEIGHTS: list[int] = [2, 1, 1, 1]
 LOADING_TEXT: str = u'Loading...'
 
-ColumnTuple = tuple[str, int, urwid.Widget]
+ColumnTuple = tuple[str, int, Widget]
 
 
-def get_field(fields: list[urwid.Widget], index: int) -> urwid.Widget:
+def get_field(fields: list[Widget], index: int) -> Widget:
     try:
         return fields[index]
     except IndexError:
         return BlankField()
 
 
-def column_tuple(weight: int, field: urwid.Widget) -> ColumnTuple:
+def column_tuple(weight: int, field: Widget) -> ColumnTuple:
     return 'weight', weight, field
 
 
-def columns(fields: list[urwid.Widget]) -> list[ColumnTuple]:
+def columns(fields: list[Widget]) -> list[ColumnTuple]:
     return [column_tuple(weight, get_field(fields, index))
             for index, weight in enumerate(COLUMN_WEIGHTS)]
 
@@ -34,12 +35,12 @@ def format_amount(amount: Decimal) -> str:
     return '{}'.format(amount)
 
 
-class BlankField(urwid.Text):
+class BlankField(Text):
     def __init__(self) -> None:
         super().__init__(u'')
 
 
-class AssetEditDialog(urwid.WidgetWrap):
+class AssetEditDialog(WidgetWrap):
     name: str
     amount: Decimal
     price_source: str
@@ -49,12 +50,12 @@ class AssetEditDialog(urwid.WidgetWrap):
     ]
 
     def __init__(self, name: str, amount: Decimal, price_source: str) -> None:
-        super().__init__(urwid.AttrMap(urwid.Filler(urwid.Pile([
-            urwid.Text(name),
-            urwid.Text(format_amount(amount)),
-            urwid.Text(price_source),
-            urwid.Button(u'Cancel', self.cancel),
-            urwid.Button(u'Apply', self.apply),
+        super().__init__(AttrMap(Filler(Pile([
+            Text(name),
+            Text(format_amount(amount)),
+            Text(price_source),
+            Button(u'Cancel', self.cancel),
+            Button(u'Apply', self.apply),
         ])), 'popup-bg'))
 
     def apply(self, _):
@@ -64,7 +65,7 @@ class AssetEditDialog(urwid.WidgetWrap):
         self._emit('cancel')
 
 
-class AssetSelector(urwid.Button):
+class AssetSelector(Button):
     def __init__(self, text: str, asset: Asset, ui_controller: UIController) -> None:
         super().__init__(text, self.edit_asset)
         self.asset = asset
@@ -76,8 +77,8 @@ class AssetSelector(urwid.Button):
             self.asset.amount,
             self.asset.price_source,
         )
-        urwid.connect_signal(dialog, 'apply', self.apply_edit)
-        urwid.connect_signal(dialog, 'cancel', self.cancel_edit)
+        connect_signal(dialog, 'apply', self.apply_edit)
+        connect_signal(dialog, 'cancel', self.cancel_edit)
         self.ui_controller.open_dialog(dialog)
 
     def apply_edit(self, _):
@@ -97,23 +98,23 @@ class AssetSelectorFactory:
         return AssetSelector(text, asset, self.ui_controller)
 
 
-class Field(urwid.Columns):
+class Field(Columns):
     def __init__(self, text: str) -> None:
         super().__init__([
-            (2, urwid.Text(u'| ')),
-            urwid.Text(text),
-            (2, urwid.Text(u' |')),
+            (2, Text(u'| ')),
+            Text(text),
+            (2, Text(u' |')),
         ])
 
 
-class ColumnLayout(urwid.Columns):
-    def __init__(self, fields: list[urwid.Widget]) -> None:
+class ColumnLayout(Columns):
+    def __init__(self, fields: list[Widget]) -> None:
         super().__init__(columns(fields))
 
 
-class Row(urwid.WidgetWrap):
+class Row(WidgetWrap):
     def __init__(self, asset: Asset, asset_selector_factory: AssetSelectorFactory) -> None:
-        super().__init__(urwid.AttrMap(ColumnLayout([
+        super().__init__(AttrMap(ColumnLayout([
             asset_selector_factory.create(asset.name, asset),
             Field(format_amount(asset.amount)),
             Field(LOADING_TEXT),
@@ -131,10 +132,10 @@ class RowFactory:
         return Row(asset, self.asset_selector_factory)
 
 
-class Table(urwid.ListBox):
+class Table(ListBox):
     @inject
     def __init__(self, data_controller: DataController, row_factory: RowFactory) -> None:
-        super().__init__(urwid.SimpleFocusListWalker(
+        super().__init__(SimpleFocusListWalker(
             [row_factory.create(asset)
              for asset
              in data_controller.get_current()]
@@ -151,28 +152,28 @@ class ColumnLabels(ColumnLayout):
         ])
 
 
-class Header(urwid.Pile):
+class Header(Pile):
     def __init__(self) -> None:
         super().__init__([
             ColumnLabels(),
-            urwid.Divider(u'-'),
+            Divider(u'-'),
         ])
 
 
-class Instructions(urwid.Text):
+class Instructions(Text):
     def __init__(self) -> None:
         super().__init__(u'q - exit')
 
 
-class Footer(urwid.Pile):
+class Footer(Pile):
     def __init__(self) -> None:
         super().__init__([
-            urwid.Divider(u'-'),
+            Divider(u'-'),
             Instructions(),
         ])
 
 
-class CurrentView(urwid.Frame):
+class CurrentView(Frame):
     @singleton
     @inject
     def __init__(self, table: Table, header: Header, footer: Footer) -> None:
