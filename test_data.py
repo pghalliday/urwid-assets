@@ -14,8 +14,8 @@ def asset(index: int) -> Asset:
     )
 
 
-CURRENT: list[Asset] = [asset(index) for index in range(50)]
-SNAPSHOTS: list[Snapshot] = []
+CURRENT: tuple[Asset] = tuple(asset(index) for index in range(50))
+SNAPSHOTS: tuple[Snapshot] = tuple()
 ASSETS: Assets = Assets(
     current=CURRENT,
     snapshots=SNAPSHOTS,

@@ -3,7 +3,7 @@ from decimal import Decimal
 from uuid import UUID
 
 
-@dataclass
+@dataclass(frozen=True)
 class Asset:
     id: UUID
     name: str
@@ -11,7 +11,7 @@ class Asset:
     price_source: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class AssetSnapshot:
     id: UUID
     name: str
@@ -19,14 +19,14 @@ class AssetSnapshot:
     price: Decimal
 
 
-@dataclass
+@dataclass(frozen=True)
 class Snapshot:
     id: UUID
-    assets: list[AssetSnapshot]
+    assets: tuple[AssetSnapshot]
     timestamp: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class Assets:
-    current: list[Asset]
-    snapshots: list[Snapshot]
+    current: tuple[Asset]
+    snapshots: tuple[Snapshot]
