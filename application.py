@@ -27,5 +27,4 @@ class Application:
                      ('reversed', 'standout', ''),
                      ('popup-bg', 'white', 'dark blue'),
                  ],
-                 unhandled_input=self.global_keys,
-                 pop_ups=True).run()
+                 unhandled_input=self.global_keys).run()
