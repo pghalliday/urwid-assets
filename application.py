@@ -1,17 +1,15 @@
-from dataclasses import dataclass
-
 from injector import inject
 from urwid import ExitMainLoop, MainLoop
 
-from controllers.ui_controller import UIController
-from views.current_view import CurrentView
+from views.application_root import ApplicationRoot
 
 
-@inject
-@dataclass
 class Application:
-    ui_controller: UIController
-    current_view: CurrentView
+    _application_root: ApplicationRoot
+
+    @inject
+    def __init__(self, application_root: ApplicationRoot):
+        self._application_root = application_root
 
     def global_keys(self, key: str) -> None:
         if key in ('q', 'Q'):
@@ -21,10 +19,9 @@ class Application:
         raise ExitMainLoop()
 
     def start(self) -> None:
-        self.ui_controller.set_view(self.current_view)
-        MainLoop(self.ui_controller,
+        self._application_root.activate()
+        MainLoop(self._application_root,
                  palette=[
                      ('reversed', 'standout', ''),
-                     ('popup-bg', 'white', 'dark blue'),
                  ],
                  unhandled_input=self.global_keys).run()
