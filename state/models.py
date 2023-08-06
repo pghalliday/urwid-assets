@@ -4,11 +4,29 @@ from uuid import UUID
 
 
 @dataclass(frozen=True)
+class AssetDataSourceConfig:
+    name: str
+
+
+@dataclass(frozen=True)
+class StringAssetDataSourceConfig(AssetDataSourceConfig):
+    value: str
+
+
+@dataclass(frozen=True)
+class AssetDataSource:
+    name: str
+    endpoint: str
+    config: tuple[AssetDataSourceConfig, ...]
+
+
+@dataclass(frozen=True)
 class Asset:
     uuid: UUID
     name: str
     amount: Decimal
-    price_source: str
+    data_source: AssetDataSource
+    price: Decimal
 
 
 @dataclass(frozen=True)
@@ -34,11 +52,28 @@ class Assets:
 
 @dataclass(frozen=True)
 class AssetsFile:
-    path: str
-    passphrase: str
+    path: str | None
+    passphrase: str | None
+
+
+@dataclass(frozen=True)
+class DataSourceConfigField:
+    name: str
+
+
+@dataclass(frozen=True)
+class StringDataSourceConfigField(DataSourceConfigField):
+    value: str
+
+
+@dataclass(frozen=True)
+class DataSource:
+    name: str
+    config: tuple[DataSourceConfigField]
 
 
 @dataclass(frozen=True)
 class State:
     assets_file: AssetsFile
+    data_sources: tuple[DataSource, ...]
     assets: Assets
