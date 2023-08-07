@@ -1,6 +1,6 @@
 from urwid import WidgetPlaceholder, Overlay, LineBox
 
-from lib.widgets.view import View
+from lib.widgets.views.view import View
 
 
 class ViewManager(View):

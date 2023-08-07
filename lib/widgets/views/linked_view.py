@@ -1,7 +1,7 @@
 from urwid import Widget
 
 from lib.redux.store import Store, Unsubscribe
-from lib.widgets.view import View
+from lib.widgets.views.view import View
 
 
 class LinkedView(View):

@@ -1,9 +1,13 @@
 from dataclasses import dataclass
 from decimal import Decimal
-from uuid import UUID, uuid1
 
-from lib.data_source.data_source import DataSource, DataSourceConfigField, \
-    DataSourceEndpoint, StringDataSourceConfigField, DataSourceConfig
+from injector import inject
+
+from lib.data_source import DataSource, DataSourceConfigField, \
+    DataSourceEndpoint, StringDataSourceConfigField
+from lib.redux.store import Store
+from state import State
+from state.assets import Asset
 
 _API_KEY = 'api_key'
 _BASE_URL = 'base_url'
@@ -20,9 +24,12 @@ class _Query:
 
 
 class Tiingo(DataSource):
-    _base_url: str
-    _api_key: str
-    _queries: dict[str, dict[UUID, _Query]]
+    @inject
+    def __init__(self, store: Store[State]):
+        super().__init__(store)
+
+    def _update(self) -> None:
+        pass
 
     def get_name(self) -> str:
         return 'tiingo'
@@ -44,11 +51,6 @@ class Tiingo(DataSource):
                 secret=True,
             ),
         )
-
-    def set_global_config(self, config: tuple[DataSourceConfig, ...]) -> None:
-        config_dict = {data_source_config.name: data_source_config.value for data_source_config in config}
-        self._base_url = config_dict[_BASE_URL]
-        self._api_key = config_dict[_API_KEY]
 
     def get_endpoints(self) -> tuple[DataSourceEndpoint, ...]:
         return (
@@ -87,14 +89,8 @@ class Tiingo(DataSource):
             ),
         )
 
-    def register_query(self, endpoint: str, config: tuple[DataSourceConfig, ...]) -> UUID:
-        uuid = uuid1()
-        config_dict = {data_source_config.name: data_source_config.value for data_source_config in config}
-        self._queries[endpoint][uuid] = _Query(ticker=config_dict[_TICKER])
-        return uuid
-
     def before_query(self, timestamp: str | None = None) -> None:
         pass
 
-    def query(self, endpoint: str, uuid: UUID, timestamp: str | None = None) -> Decimal:
+    def query(self, asset: Asset, timestamp: str | None = None) -> Decimal:
         pass

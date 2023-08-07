@@ -1,25 +1,22 @@
 import logging
 from decimal import Decimal
-from functools import reduce
 from uuid import uuid1, UUID
 
-from injector import inject
+from injector import inject, singleton
 from urwid import Frame, Columns, Text, connect_signal, LineBox, WidgetWrap
 
-from lib.data_source.data_source import DataSource
+from lib.data_source import DataSource
 from lib.redux.reselect import create_selector, SelectorOptions
 from lib.redux.store import Store, Action
-from lib.widgets.config_dialog import ConfigDialog, ConfigValue
-from lib.widgets.linked_view import LinkedView
-from lib.widgets.list_dialog import ListDialog
-from lib.widgets.message_box import MessageBox, MessageBoxButtons
+from lib.widgets.dialogs.config_dialog import ConfigDialog, ConfigValue
+from lib.widgets.dialogs.message_box import MessageBox, MessageBoxButtons
 from lib.widgets.table import Column, Row, Table
-from lib.widgets.view_manager import ViewManager
-from state.models import Asset, State
-from state.reducer import UPDATE_ASSET, ADD_ASSET, DELETE_ASSET, MOVE_ASSET_DOWN, MOVE_ASSET_UP, APPLY_DATA_SOURCE
-from views.asset_dialog_config import DefaultAssetDialogConfigFactory, apply_asset_to_asset_dialog_config, \
+from lib.widgets.views.linked_view import LinkedView
+from lib.widgets.views.view_manager import ViewManager
+from state import State
+from state.assets import MOVE_ASSET_DOWN, MOVE_ASSET_UP, Asset, UPDATE_ASSET, ADD_ASSET, DELETE_ASSET
+from views.helpers.asset_dialog_config import DefaultAssetDialogConfigFactory, apply_asset_to_asset_dialog_config, \
     asset_from_config_values
-from views.data_source_dialog_config import create_data_source_dialog_config, data_source_from_config_values
 
 LOGGER = logging.getLogger(__name__)
 
@@ -41,27 +38,24 @@ def _format_currency(currency: Decimal) -> str:
 
 
 _select_rows = create_selector((
-    lambda state: state.assets.current,
+    lambda state: state.assets,
 ), lambda asset: Row(
     asset.uuid,
     (
         asset.name,
         _format_amount(asset.amount),
         LOADING_TEXT if asset.price < 0 else _format_currency(asset.price),
-        LOADING_TEXT if asset.price < 0 else _format_currency(asset.price * asset.amount)),
+        LOADING_TEXT if asset.price < 0 else _format_currency(asset.price * asset.amount)
+    ),
     asset,
 ), SelectorOptions(dimensions=(1,)))
 
 _select_total = create_selector((
-    lambda state: state.assets.current,
-), lambda assets: _format_currency(reduce(
-    lambda total, asset:
-    total + asset.price * asset.amount
-    if asset.price > 0
-    else Decimal(0.0),
-    assets,
-    Decimal(0.0)
-)))
+    lambda state: state.assets,
+), lambda assets: _format_currency(
+    sum(tuple(asset.price * asset.amount if asset.price > 0 else Decimal(0.0)
+              for asset in assets))
+))
 
 
 class Header(WidgetWrap):
@@ -69,23 +63,8 @@ class Header(WidgetWrap):
         super().__init__(LineBox(Text(u'Current assets')))
 
 
-class Instructions(Columns):
-    def __init__(self) -> None:
-        super().__init__([
-            Text(u'e - edit'),
-            Text(u'a - add'),
-            Text(u'd - delete'),
-            Text(u's - snapshot'),
-            Text(u'q - exit'),
-        ])
-
-
-class Footer(WidgetWrap):
-    def __init__(self) -> None:
-        super().__init__(LineBox(Instructions()))
-
-
-class CurrentAssetsScreen(LinkedView):
+@singleton
+class CurrentAssetsView(LinkedView):
     _store: Store[State]
     _view_manager: ViewManager
     _default_asset_dialog_config_factory: DefaultAssetDialogConfigFactory
@@ -122,7 +101,7 @@ class CurrentAssetsScreen(LinkedView):
         if key in ('h', 'H'):
             self._show_help()
             return None
-        if key in ('e', 'E'):
+        if key == 'enter':
             row = self._table.get_focused()
             if row is not None:
                 self._edit_asset(row.data)
@@ -130,7 +109,7 @@ class CurrentAssetsScreen(LinkedView):
         if key in ('a', 'A'):
             self._add_asset()
             return None
-        if key in ('d', 'D'):
+        if key == 'backspace':
             row = self._table.get_focused()
             if row is not None:
                 self._delete_asset(row.data)
@@ -145,11 +124,8 @@ class CurrentAssetsScreen(LinkedView):
             if row is not None:
                 self._store.dispatch(Action(MOVE_ASSET_UP, row.data))
             return None
-        if key in ('c', 'C'):
-            self._configure_data_sources()
-            return None
         if key in ('s', 'S'):
-            LOGGER.info('TODO: snapshot')
+            LOGGER.info('TODO: snapshots')
             return None
         return key
 
@@ -158,13 +134,12 @@ class CurrentAssetsScreen(LinkedView):
                                  (
                                      u' h - Show this help',
                                      u'',
-                                     u' a - Add a new asset',
-                                     u' e - Edit the selected asset',
-                                     u' d - Delete the selected asset',
-                                     u' k - Move the selected asset UP',
-                                     u' j - Move the selected asset DOWN',
-                                     u' c - Configure data sources',
-                                     u' s - take a snapshot (TODO)',
+                                     u' a         - Add a new asset',
+                                     u' enter     - Edit the selected asset',
+                                     u' backspace - Delete the selected asset',
+                                     u' k         - Move the selected asset UP',
+                                     u' j         - Move the selected asset DOWN',
+                                     u' s         - take a snapshot (TODO)',
                                      u'',
                                      u' q - quit',
                                  )
@@ -178,7 +153,7 @@ class CurrentAssetsScreen(LinkedView):
             apply_asset_to_asset_dialog_config(self._default_asset_dialog_config_factory.create(), asset),
         )
         connect_signal(edit_asset_dialog, 'cancel', lambda _: self._view_manager.close_dialog())
-        connect_signal(edit_asset_dialog, 'apply', self._dispatch_update_asset, asset.uuid)
+        connect_signal(edit_asset_dialog, 'ok', self._dispatch_update_asset, asset.uuid)
         self._view_manager.open_dialog(edit_asset_dialog)
 
     def _add_asset(self):
@@ -187,7 +162,7 @@ class CurrentAssetsScreen(LinkedView):
             self._default_asset_dialog_config_factory.create(),
         )
         connect_signal(add_asset_dialog, 'cancel', lambda _: self._view_manager.close_dialog())
-        connect_signal(add_asset_dialog, 'apply', self._dispatch_add_asset, uuid1())
+        connect_signal(add_asset_dialog, 'ok', self._dispatch_add_asset, uuid1())
         self._view_manager.open_dialog(add_asset_dialog)
 
     def _delete_asset(self, asset: Asset):
@@ -197,29 +172,6 @@ class CurrentAssetsScreen(LinkedView):
         connect_signal(confirm_dialog, 'cancel', lambda _: self._view_manager.close_dialog())
         connect_signal(confirm_dialog, 'ok', self._dispatch_delete_asset, asset)
         self._view_manager.open_dialog(confirm_dialog)
-
-    def _configure_data_sources(self):
-        data_sources_list_dialog = ListDialog(
-            u'Configure data sources',
-            tuple(data_source.get_display_name() for data_source in self._data_sources),
-            0,
-        )
-        connect_signal(data_sources_list_dialog, 'ok', lambda _: self._view_manager.close_dialog())
-        connect_signal(
-            data_sources_list_dialog,
-            'select',
-            lambda _, selected: self._configure_data_source(self._data_sources[selected])
-        )
-        self._view_manager.open_dialog(data_sources_list_dialog, ('relative', 60))
-
-    def _configure_data_source(self, data_source: DataSource):
-        configure_data_source_dialog = ConfigDialog(
-            u'Configure %s' % data_source.get_display_name(),
-            create_data_source_dialog_config(data_source, self._store.get_state().data_sources),
-        )
-        connect_signal(configure_data_source_dialog, 'cancel', lambda _: self._view_manager.close_dialog())
-        connect_signal(configure_data_source_dialog, 'apply', self._dispatch_apply_data_source, data_source.get_name())
-        self._view_manager.open_dialog(configure_data_source_dialog)
 
     def _dispatch_update_asset(self, _, config_values: tuple[ConfigValue, ...], uuid: UUID):
         self._store.dispatch(Action(UPDATE_ASSET, asset_from_config_values(uuid, config_values)))
@@ -231,10 +183,6 @@ class CurrentAssetsScreen(LinkedView):
 
     def _dispatch_delete_asset(self, _, asset: Asset):
         self._store.dispatch(Action(DELETE_ASSET, asset))
-        self._view_manager.close_dialog()
-
-    def _dispatch_apply_data_source(self, _, config_values: tuple[ConfigValue, ...], name: str):
-        self._store.dispatch(Action(APPLY_DATA_SOURCE, data_source_from_config_values(name, config_values)))
         self._view_manager.close_dialog()
 
     def _update(self) -> None:

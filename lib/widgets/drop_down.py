@@ -25,7 +25,6 @@ class _PopUp(WidgetWrap):
     def keypress(self, size: int, key: str) -> str | None:
         if super().keypress(size, key) is None:
             return None
-        LOGGER.info(key)
         if key in ('enter', ' '):
             self._emit('select', self._list_walker.focus)
 

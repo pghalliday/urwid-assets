@@ -3,18 +3,29 @@ from uuid import UUID
 
 from injector import inject, singleton
 
-from lib.data_source.data_source import DataSourceConfigField, StringDataSourceConfigField, DataSourceEndpoint, \
+import state.data_sources
+from lib.data_source import DataSourceConfigField, StringDataSourceConfigField, DataSourceEndpoint, \
     DataSource
-from lib.widgets.config_dialog import StringConfigField, ConfigField, ChoiceConfigField, ConfigFieldChoice, \
+from lib.redux.store import Store
+from lib.widgets.dialogs.config_dialog import StringConfigField, ConfigField, ChoiceConfigField, ConfigFieldChoice, \
     DecimalConfigField, ConfigValue, StringConfigValue, DecimalConfigValue, ChoiceConfigValue
-from state.models import Asset, AssetDataSource, AssetDataSourceConfig, StringAssetDataSourceConfig
+from state import State
+from state.assets import Asset, AssetDataSource, AssetDataSourceConfig, StringAssetDataSourceConfig
+
+
+class UnknownDataSource(Exception):
+    name: str
+
+    def __init__(self, name: str):
+        super().__init__(u'Unknown data source: %s' % name)
+        self.name = name
 
 
 class UnknownDataSourceConfigFieldType(Exception):
     field: DataSourceConfigField
 
     def __init__(self, field: DataSourceConfigField):
-        super().__init__()
+        super().__init__(u'Unknown data source config field: %s' % field)
         self.field = field
 
 
@@ -22,7 +33,7 @@ class UnknownConfigFieldType(Exception):
     field: ConfigField
 
     def __init__(self, field: ConfigField):
-        super().__init__()
+        super().__init__(u'Unknown config field: %s' % field)
         self.field = field
 
 
@@ -30,7 +41,7 @@ class UnknownConfigValueType(Exception):
     value: ConfigValue
 
     def __init__(self, value: ConfigValue):
-        super().__init__()
+        super().__init__(u'Unknown config value: %s' % value)
         self.value = value
 
 
@@ -40,6 +51,7 @@ def _create_field_config_from_data_source(field: DataSourceConfigField) -> Confi
             name=field.name,
             display_name=field.display_name,
             value=field.default,
+            secret=field.secret,
         )
     raise UnknownDataSourceConfigFieldType(field)
 
@@ -66,6 +78,7 @@ def _create_field_config_from_asset(field: tuple[ConfigField, AssetDataSourceCon
             name=config_field.name,
             display_name=config_field.display_name,
             value=asset_data_source_config.value,
+            secret=config_field.secret,
         )
     raise UnknownConfigFieldType(config_field)
 
@@ -106,9 +119,9 @@ def _apply_asset_to_data_source_config(data_source_config: ConfigField,
     return ChoiceConfigField(
         name=data_source_config.name,
         display_name=data_source_config.display_name,
-        value=asset_data_source.name,
+        value=asset_data_source.uuid,
         choices=tuple(_apply_asset_to_endpoint_config(choice, asset_data_source)
-                      if asset_data_source.name == choice.value else choice
+                      if asset_data_source.uuid == choice.value else choice
                       for choice in data_source_config.choices)
     )
 
@@ -146,7 +159,7 @@ def _asset_data_source_from_config_value(data_source_config_value: ChoiceConfigV
     assert isinstance(endpoint_config_value, ChoiceConfigValue)
     (endpoint_name, endpoint_config) = _asset_endpoint_from_config_value(endpoint_config_value)
     return AssetDataSource(
-        name=data_source_config_value.value,
+        uuid=data_source_config_value.value,
         endpoint=endpoint_name,
         config=endpoint_config,
     )
@@ -171,21 +184,37 @@ def asset_from_config_values(uuid: UUID, config_values: tuple[ConfigValue, ...])
 @singleton
 class DefaultAssetDialogConfigFactory:
     _data_sources: tuple[DataSource, ...]
+    _store: Store[State]
 
     @inject
-    def __init__(self, data_sources: tuple[DataSource, ...]):
+    def __init__(self, data_sources: tuple[DataSource, ...], store: Store[State]):
         self._data_sources = data_sources
+        self._store = store
+
+    def _get_data_source(self, name: str) -> DataSource:
+        for data_source in self._data_sources:
+            if data_source.get_name() == name:
+                return data_source
+        raise UnknownDataSource(name)
+
+    def _create_data_source_choice(
+            self,
+            data_source_state: state.data_sources.DataSource
+    ) -> ConfigFieldChoice:
+        data_source = self._get_data_source(data_source_state.type)
+        return ConfigFieldChoice(
+            value=data_source_state.uuid,
+            display_text=data_source_state.name,
+            sub_fields=(_create_endpoint_config(data_source.get_endpoints()),)
+        )
 
     def _create_data_source_config(self) -> ChoiceConfigField:
+        data_source_states = self._store.get_state().data_sources
         return ChoiceConfigField(
             name='data_source',
             display_name=u'Data source',
-            value=self._data_sources[0].get_name(),
-            choices=tuple(ConfigFieldChoice(
-                data_source.get_name(),
-                data_source.get_display_name(),
-                (_create_endpoint_config(data_source.get_endpoints()),)
-            ) for data_source in self._data_sources)
+            value=data_source_states[0].uuid,
+            choices=tuple(self._create_data_source_choice(data_source) for data_source in data_source_states)
         )
 
     def create(self) -> tuple[ConfigField, ...]:

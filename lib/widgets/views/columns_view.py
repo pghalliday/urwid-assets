@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from urwid import Columns
 
-from lib.widgets.view import View
+from lib.widgets.views.view import View
 
 
 @dataclass(frozen=True)
@@ -11,9 +11,8 @@ class Column:
     view: View
 
 
-class ColumnarView(View):
+class ColumnsView(View):
     _columns: tuple[Column, ...]
-    _active: bool = False
 
     def __init__(self, columns: tuple[Column, ...]):
         self._columns = columns
@@ -21,11 +20,9 @@ class ColumnarView(View):
                                   for column in self._columns]))
 
     def activate(self) -> None:
-        self._active = True
-        for view in self._column_views:
-            view.activate()
+        for column in self._columns:
+            column.view.activate()
 
     def deactivate(self) -> None:
-        for view in self._column_views:
-            view.deactivate()
-        self._active = False
+        for column in self._columns:
+            column.view.deactivate()
