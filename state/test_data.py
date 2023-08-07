@@ -2,7 +2,7 @@ from decimal import Decimal
 from random import randrange
 from uuid import uuid1, UUID
 
-from state.models import Asset, Assets, State, AssetsFile
+from state.models import Asset, AssetDataSource, StringAssetDataSourceConfig
 
 
 def asset(uuid: UUID, index: int) -> Asset:
@@ -10,22 +10,17 @@ def asset(uuid: UUID, index: int) -> Asset:
         uuid=uuid,
         name=u'Asset %s' % index,
         amount=Decimal(randrange(1, 10000000000)) / 10000,
-        price_source=u'test'
+        data_source=AssetDataSource(
+            name='tiingo',
+            endpoint='iex',
+            config=(StringAssetDataSourceConfig(
+                name='ticker',
+                value='AAPL%s' % index,
+            ),)
+        ),
+        price=Decimal(-1)
     )
 
 
-ASSETS_FILE: AssetsFile = AssetsFile(
-    path='path',
-    passphrase='passphrase',
-)
 IDS = tuple((uuid1(), index) for index in range(5))
 CURRENT = tuple(asset(uuid, index) for uuid, index in IDS)
-SNAPSHOTS = tuple()
-ASSETS: Assets = Assets(
-    current=CURRENT,
-    snapshots=SNAPSHOTS,
-)
-STATE: State = State(
-    assets_file=ASSETS_FILE,
-    assets=ASSETS,
-)

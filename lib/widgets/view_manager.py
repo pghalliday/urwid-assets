@@ -21,12 +21,12 @@ class ViewManager(View):
         if self._active:
             screen.activate()
 
-    def open_dialog(self, dialog: View):
+    def open_dialog(self, dialog: View, height: int | str | tuple[str, int] = 'pack'):
         self._placeholder.original_widget = Overlay(
             LineBox(dialog),
             self._placeholder.original_widget,
             align='center', width=('relative', 50),
-            valign='middle', height='pack',
+            valign='middle', height=height,
         )
         self._current_dialogs.append(dialog)
         if self._active:

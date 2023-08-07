@@ -24,4 +24,5 @@ class Application:
                  palette=[
                      ('reversed', 'standout', ''),
                  ],
-                 unhandled_input=self.global_keys).run()
+                 unhandled_input=self.global_keys,
+                 pop_ups=True).run()

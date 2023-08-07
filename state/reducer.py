@@ -1,11 +1,10 @@
 import logging
-from types import MappingProxyType
 from uuid import UUID
 
-from lib.redux.reducer import combine_reducers, INIT
+from lib.redux.reducer import combine_reducers, INIT, ReducerMapping
 from lib.redux.store import Action
-from state.models import State, Assets, Asset, AssetsFile, Snapshot
-from state.test_data import STATE
+from state.models import State, Assets, Asset, AssetsFile, Snapshot, DataSource
+from state.test_data import CURRENT
 
 LOGGER = logging.getLogger(__name__)
 
@@ -14,11 +13,25 @@ ADD_ASSET = 'ADD_ASSET'
 DELETE_ASSET = 'DELETE_ASSET'
 MOVE_ASSET_DOWN = 'MOVE_ASSET_DOWN'
 MOVE_ASSET_UP = 'MOVE_ASSET_UP'
+APPLY_DATA_SOURCE = 'APPLY_DATA_SOURCES'
 
 
 def _assets_file_reducer(state: AssetsFile, action: Action) -> AssetsFile:
     if action.type == INIT:
-        return STATE.assets_file
+        return AssetsFile(
+            path=None,
+            passphrase=None,
+        )
+    return state
+
+
+def _data_sources_reducer(state: tuple[DataSource, ...], action: Action) -> tuple[DataSource, ...]:
+    if action.type == INIT:
+        return tuple()
+    if action.type == APPLY_DATA_SOURCE:
+        data_source = action.payload
+        assert isinstance(data_source, DataSource)
+        return tuple()
     return state
 
 
@@ -31,7 +44,7 @@ def _get_asset_index(assets: tuple[Asset, ...], uuid: UUID) -> int | None:
 
 def _current_assets_reducer(state: tuple[Asset, ...], action: Action) -> tuple[Asset, ...]:
     if action.type == INIT:
-        return STATE.assets.current
+        return CURRENT
     if action.type == ADD_ASSET:
         asset = action.payload
         assert isinstance(asset, Asset)
@@ -73,17 +86,17 @@ def _current_assets_reducer(state: tuple[Asset, ...], action: Action) -> tuple[A
 
 def _snapshots_reducer(state: tuple[Snapshot, ...], action: Action) -> tuple[Snapshot, ...]:
     if action.type == INIT:
-        return STATE.assets.snapshots
+        return tuple()
     return state
 
 
-_assets_reducer = combine_reducers(Assets, MappingProxyType({
-    'current': _current_assets_reducer,
-    'snapshots': _snapshots_reducer,
+_assets_reducer = combine_reducers(Assets, (
+    ReducerMapping('current', _current_assets_reducer),
+    ReducerMapping('snapshots', _snapshots_reducer),
+))
 
-}))
-
-reducer = combine_reducers(State, MappingProxyType({
-    'assets_file': _assets_file_reducer,
-    'assets': _assets_reducer,
-}))
+reducer = combine_reducers(State, (
+    ReducerMapping('assets_file', _assets_file_reducer),
+    ReducerMapping('data_sources', _data_sources_reducer),
+    ReducerMapping('assets', _assets_reducer),
+))
