@@ -32,6 +32,7 @@ class ConfigField:
 @dataclass(frozen=True)
 class StringConfigField(ConfigField):
     value: str
+    secret: bool = False
 
     def get_edit(self, caption_column_width: int) -> _StringConfigEdit:
         return _StringConfigEdit(self, caption_column_width)
@@ -76,7 +77,7 @@ class _StringConfigEdit(_ConfigEdit):
 
     def __init__(self, config_field: StringConfigField, caption_column_width: int):
         self._name = config_field.name
-        self._edit = Edit(edit_text=config_field.value)
+        self._edit = Edit(edit_text=config_field.value, mask=u'*' if config_field.secret else None)
         super().__init__(Columns((
             (caption_column_width, Text(config_field.display_name)),
             (2, Text(u': ')),

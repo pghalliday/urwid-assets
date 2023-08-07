@@ -64,6 +64,7 @@ class Test(DataSource):
                 name=_API_KEY,
                 display_name=u'API Key',
                 default='',
+                secret=True,
             ),
             StringDataSourceConfigField(
                 name=_ENVIRONMENT,

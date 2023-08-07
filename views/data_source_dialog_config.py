@@ -35,6 +35,7 @@ def _update_field_config_from_data_source(field: ConfigField, config: models.Dat
             name=field.name,
             display_name=field.display_name,
             value=config.value,
+            secret=field.secret,
         )
     raise UnknownConfigFieldType(field)
 
@@ -45,6 +46,7 @@ def _create_field_config_from_data_source(field: DataSourceConfigField) -> Confi
             name=field.name,
             display_name=field.display_name,
             value=field.default,
+            secret=field.secret,
         )
     raise UnknownDataSourceConfigFieldType(field)
 

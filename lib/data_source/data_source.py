@@ -21,6 +21,7 @@ class DataSourceConfigField:
 @dataclass(frozen=True)
 class StringDataSourceConfigField(DataSourceConfigField):
     default: str
+    secret: bool = False
 
 
 @dataclass(frozen=True)
