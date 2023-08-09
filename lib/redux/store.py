@@ -12,6 +12,7 @@ class Store(Generic[STATE]):
     _subscriptions: tuple[Subscription, ...] = tuple()
     _state: STATE = None
     _reducer: Reducer
+    _dispatching: bool = False
 
     def __init__(self, reducer: Reducer):
         self._reducer = reducer
@@ -25,10 +26,16 @@ class Store(Generic[STATE]):
 
         return unsubscribe
 
-    def dispatch(self, action: Action):
-        self._state = self._reducer(self._state, action)
+    def dispatch(self, actions: Action | tuple[Action, ...]):
+        assert not self._dispatching
+        self._dispatching = True
+        if isinstance(actions, Action):
+            actions = (actions,)
+        for action in actions:
+            self._state = self._reducer(self._state, action)
         for subscription in self._subscriptions:
             subscription()
+        self._dispatching = False
 
     def get_state(self):
         return self._state

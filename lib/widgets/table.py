@@ -158,7 +158,8 @@ class Table(WidgetWrap, Generic[DATA]):
                                _create_header(columns)))
 
     def _on_focus_changed(self, index: int):
-        LOGGER.info(u'TODO: _on_focus_changed: %s' % index)
+        # LOGGER.info(u'TODO: _on_focus_changed: %s' % index)
+        pass
 
     def _create_row(self, row: Row[DATA]) -> _Row:
         return self._row_factory.create(row)
@@ -185,7 +186,9 @@ class Table(WidgetWrap, Generic[DATA]):
             for (current_indexed_row, next_indexed_row) in diff.get_changed():
                 self._row_list[current_indexed_row.index] = self._create_row(next_indexed_row.row)
             # now remove the deleted items so that the added indices will be valid
-            for indexed_row in diff.get_deleted():
+            # we do this backwards to ensure that the indices are still valid after each delete
+            deleted = diff.get_deleted()
+            for indexed_row in reversed(deleted):
                 del self._row_list[indexed_row.index]
             # record the currently focused item
             focused = self._get_focused_widget()

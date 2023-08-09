@@ -3,7 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
-from uuid import UUID
+
+from lib.redux.store import Store
+from state import State
+from state.assets import Asset
 
 
 @dataclass(frozen=True)
@@ -32,6 +35,12 @@ class DataSourceEndpoint:
 
 
 class DataSource:
+    _store: Store[State]
+
+    def __init__(self, store: Store[State]):
+        self._store = store
+        self._store.subscribe(self._update)
+
     def get_name(self) -> str:
         pass
 
@@ -41,17 +50,14 @@ class DataSource:
     def get_global_config_fields(self) -> tuple[DataSourceConfigField, ...]:
         pass
 
-    def set_global_config(self, config: tuple[DataSourceConfig, ...]) -> None:
-        pass
-
     def get_endpoints(self) -> tuple[DataSourceEndpoint, ...]:
-        pass
-
-    def register_query(self, endpoint: str, config: tuple[DataSourceConfig, ...]) -> UUID:
         pass
 
     def before_query(self, timestamp: str | None = None) -> None:
         pass
 
-    def query(self, endpoint: str, uuid: UUID, timestamp: str | None = None) -> Decimal:
+    def query(self, asset: Asset, timestamp: str | None = None) -> Decimal:
+        pass
+
+    def _update(self) -> None:
         pass

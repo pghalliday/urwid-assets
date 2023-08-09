@@ -13,3 +13,8 @@ class TextList(ListBox):
     def append(self, text: str):
         self._list_walker.append(AttrMap(SelectableText(text), None, 'reversed'))
         self._list_walker.set_focus(len(self._list_walker) - 1)
+
+    def get_selected_text(self) -> str:
+        if self._list_walker.focus >= 0:
+            return self._list_walker[self._list_walker.focus].original_widget.text
+        return u''

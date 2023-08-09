@@ -2,17 +2,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import Any
 
 from urwid import Text, Divider, Columns, Button, Pile, Edit, WidgetWrap, connect_signal, WidgetPlaceholder
 from urwid.numedit import FloatEdit
 
 from lib.widgets.drop_down import DropDown, DropDownChoice
-from lib.widgets.view import View
+from lib.widgets.views.view import View
 
 
 @dataclass(frozen=True)
 class ConfigFieldChoice:
-    value: str
+    value: Any
     display_text: str
     sub_fields: tuple[ConfigField, ...]
 
@@ -54,7 +55,7 @@ class DecimalConfigField(ConfigField):
 
 @dataclass(frozen=True)
 class ChoiceConfigField(ConfigField):
-    value: str
+    value: Any
     choices: tuple[ConfigFieldChoice, ...]
 
     def get_edit(self, caption_column_width: int) -> _ChoiceConfigEdit:
@@ -159,38 +160,43 @@ class DecimalConfigValue(ConfigValue):
 
 @dataclass(frozen=True)
 class ChoiceConfigValue(ConfigValue):
-    value: str
+    value: Any
     sub_values: tuple[ConfigValue, ...]
 
 
 class ConfigDialog(View):
     signals = [
-        'apply',
+        'ok',
         'cancel',
     ]
     _edits: tuple[_ConfigEdit, ...]
 
     def __init__(self,
                  title: str,
-                 config_fields: tuple[ConfigField, ...]) -> None:
+                 config_fields: tuple[ConfigField, ...],
+                 message: str | None = None, ) -> None:
         buttons = Columns([
             Text(u''),
+            Button(u'Ok', self._ok),
             Button(u'Cancel', self._cancel),
-            Button(u'Apply', self._apply),
         ])
+        message_widgets = tuple() if message is None else (
+            Text(message),
+            Text(u''),
+        )
         caption_column_width = max(config_field.get_caption_width() for config_field in config_fields)
         self._edits = tuple(config_field.get_edit(caption_column_width) for config_field in config_fields)
         super().__init__(Pile((
                                   Text(title),
                                   Divider(u'-'),
-                              ) + self._edits + (
+                              ) + message_widgets + self._edits + (
                                   Divider(u'-'),
                                   buttons
                               )))
 
-    def _apply(self, _):
+    def _ok(self, _):
         values = tuple(edit.get_value() for edit in self._edits)
-        self._emit('apply', values)
+        self._emit('ok', values)
 
     def _cancel(self, _):
         self._emit('cancel')

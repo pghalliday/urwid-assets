@@ -2,7 +2,7 @@ from enum import Enum, auto
 
 from urwid import Text, Divider, Columns, Button, Pile
 
-from lib.widgets.view import View
+from lib.widgets.views.view import View
 
 
 class MessageBoxButtons(Enum):

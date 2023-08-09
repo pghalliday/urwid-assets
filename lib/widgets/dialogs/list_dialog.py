@@ -3,7 +3,7 @@ import logging
 from urwid import Text, Divider, Columns, Button, Pile, ListBox, SimpleFocusListWalker, AttrMap, connect_signal, Frame
 
 from lib.widgets.selectable_text import SelectableText
-from lib.widgets.view import View
+from lib.widgets.views.view import View
 
 LOGGER = logging.getLogger()
 

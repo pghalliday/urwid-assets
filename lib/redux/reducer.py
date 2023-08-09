@@ -5,9 +5,25 @@ STATE = TypeVar('STATE')
 
 
 @dataclass(frozen=True)
+class ActionType:
+    namespace: str
+    name: str
+
+
+class ActionTypeFactory:
+    _namespace: str
+
+    def __init__(self, namespace: str) -> None:
+        self._namespace = namespace
+
+    def create(self, name: str) -> ActionType:
+        return ActionType(self._namespace, name)
+
+
+@dataclass(frozen=True)
 class Action:
-    type: str
-    payload: Any
+    type: ActionType
+    payload: Any = None
 
 
 Reducer = Callable[[STATE, Action], STATE]
@@ -19,7 +35,7 @@ class ReducerMapping:
     reducer: Reducer
 
 
-INIT = '__INIT__'
+INIT = ActionType(__name__, 'INIT')
 INIT_ACTION = Action(
     INIT,
     None
