@@ -14,9 +14,9 @@ class Store(Generic[STATE]):
     _reducer: Reducer
     _dispatching: bool = False
 
-    def __init__(self, reducer: Reducer):
+    def __init__(self, reducer: Reducer, initial_state: STATE | None = None):
         self._reducer = reducer
-        self._state = reducer(None, INIT_ACTION)
+        self._state = reducer(None, INIT_ACTION) if initial_state is None else initial_state
 
     def subscribe(self, subscription: Subscription) -> Unsubscribe:
         self._subscriptions += (subscription,)

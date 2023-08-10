@@ -2,10 +2,12 @@ from uuid import UUID
 
 from injector import inject, singleton
 
-import state.data_sources
-from lib.data_source import DataSourceConfigField, StringDataSourceConfigField, DataSource
+from lib.data_sources.data_source import DataSource
+from lib.data_sources.models import DataSourceConfigField, StringDataSourceConfigField, DataSourceConfig, \
+    StringDataSourceConfig
 from lib.widgets.dialogs.config_dialog import StringConfigField, ConfigField, ChoiceConfigField, ConfigFieldChoice, \
     ConfigValue, StringConfigValue, ChoiceConfigValue
+from state.data_sources.data_sources import DataSourceInstance
 
 
 class UnknownDataSourceConfigFieldType(Exception):
@@ -44,12 +46,12 @@ def _create_field_config_from_data_source(field: DataSourceConfigField) -> Confi
 
 
 def _create_field_config_from_config(
-        field: tuple[ConfigField, state.data_sources.DataSourceConfigField]
+        field: tuple[ConfigField, DataSourceConfig]
 ) -> ConfigField:
     (config_field, data_source_config_field) = field
     assert config_field.name == data_source_config_field.name
     if isinstance(config_field, StringConfigField):
-        assert isinstance(data_source_config_field, state.data_sources.StringDataSourceConfigField)
+        assert isinstance(data_source_config_field, StringDataSourceConfig)
         return StringConfigField(
             name=config_field.name,
             display_name=config_field.display_name,
@@ -61,7 +63,7 @@ def _create_field_config_from_config(
 
 def _apply_data_source_to_config_sub_fields(
         endpoint_choice: ConfigFieldChoice,
-        config: tuple[state.data_sources.DataSourceConfigField, ...],
+        config: tuple[DataSourceConfig, ...],
 ) -> ConfigFieldChoice:
     zipped_sub_fields = zip(endpoint_choice.sub_fields, config)
     return ConfigFieldChoice(
@@ -73,7 +75,7 @@ def _apply_data_source_to_config_sub_fields(
 
 def apply_data_source_to_data_source_dialog_config(
         data_source_dialog_config: tuple[ConfigField, ...],
-        data_source: state.data_sources.DataSource,
+        data_source: DataSourceInstance,
 ) -> tuple[ConfigField, ...]:
     name_config = data_source_dialog_config[0]
     type_config = data_source_dialog_config[1]
@@ -94,9 +96,9 @@ def apply_data_source_to_data_source_dialog_config(
 
 def _data_source_config_field_from_config_value(
         config_value: ConfigValue
-) -> state.data_sources.DataSourceConfigField:
+) -> DataSourceConfig:
     if isinstance(config_value, StringConfigValue):
-        return state.data_sources.StringDataSourceConfigField(
+        return StringDataSourceConfig(
             name=config_value.name,
             value=config_value.value,
         )
@@ -106,12 +108,12 @@ def _data_source_config_field_from_config_value(
 def data_source_from_config_values(
         uuid: UUID,
         config_values: tuple[ConfigValue, ...]
-) -> state.data_sources.DataSource:
+) -> DataSourceInstance:
     name_config_value = config_values[0]
     assert isinstance(name_config_value, StringConfigValue)
     type_config_value = config_values[1]
     assert isinstance(type_config_value, ChoiceConfigValue)
-    return state.data_sources.DataSource(
+    return DataSourceInstance(
         uuid=uuid,
         name=name_config_value.value,
         type=type_config_value.value,
@@ -137,7 +139,7 @@ class DefaultDataSourceDialogConfigFactory:
                 data_source.get_name(),
                 data_source.get_display_name(),
                 tuple(_create_field_config_from_data_source(field)
-                      for field in data_source.get_global_config_fields())
+                      for field in data_source.get_config_fields())
             ) for data_source in self._data_sources)
         )
 

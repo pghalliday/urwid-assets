@@ -2,7 +2,7 @@
 
 ## TODO
 
-- load prices from data sources
+- refresh price data
 - delete assets on deletion of data source (after confirm)
 - prevent add asset unless there is at least one data source
 - snapshots

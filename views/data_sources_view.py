@@ -5,8 +5,7 @@ from uuid import uuid1, UUID
 from injector import inject, singleton
 from urwid import Frame, Text, connect_signal, LineBox, WidgetWrap
 
-import state.data_sources
-from lib.data_source import DataSource
+from lib.data_sources.data_source import DataSource
 from lib.redux.reselect import create_selector, SelectorOptions
 from lib.redux.store import Store, Action
 from lib.widgets.dialogs.config_dialog import ConfigDialog, ConfigValue
@@ -14,8 +13,10 @@ from lib.widgets.dialogs.message_box import MessageBox, MessageBoxButtons
 from lib.widgets.table import Column, Row, Table
 from lib.widgets.views.linked_view import LinkedView
 from lib.widgets.views.view_manager import ViewManager
-from state import State
-from state.data_sources import MOVE_DATA_SOURCE_DOWN, MOVE_DATA_SOURCE_UP
+from state.data_sources.data_sources import MOVE_DATA_SOURCE_DOWN, MOVE_DATA_SOURCE_UP, DataSourceInstance, \
+    UPDATE_DATA_SOURCE, \
+    ADD_DATA_SOURCE, DELETE_DATA_SOURCE
+from state.state import State
 from views.helpers.data_source_dialog_config import DefaultDataSourceDialogConfigFactory, \
     apply_data_source_to_data_source_dialog_config, data_source_from_config_values
 
@@ -132,7 +133,7 @@ class DataSourcesView(LinkedView):
         connect_signal(help_dialog, 'ok', lambda _: self._view_manager.close_dialog())
         self._view_manager.open_dialog(help_dialog)
 
-    def _edit_data_source(self, data_source: state.data_sources.DataSource):
+    def _edit_data_source(self, data_source: DataSourceInstance):
         edit_data_source_dialog = ConfigDialog(
             u'Edit: %s' % data_source.name,
             apply_data_source_to_data_source_dialog_config(self._default_data_source_dialog_config_factory.create(),
@@ -151,7 +152,7 @@ class DataSourcesView(LinkedView):
         connect_signal(add_data_source_dialog, 'ok', self._dispatch_add_data_source, uuid1())
         self._view_manager.open_dialog(add_data_source_dialog)
 
-    def _delete_data_source(self, data_source: state.data_sources.DataSource):
+    def _delete_data_source(self, data_source: DataSourceInstance):
         confirm_dialog = MessageBox(u'Delete: %s' % data_source.name,
                                     u'Are you sure you wish to delete data source: %s' % data_source.name,
                                     MessageBoxButtons.OK_CANCEL)
@@ -160,17 +161,17 @@ class DataSourcesView(LinkedView):
         self._view_manager.open_dialog(confirm_dialog)
 
     def _dispatch_update_data_source(self, _, config_values: tuple[ConfigValue, ...], uuid: UUID):
-        self._store.dispatch(Action(state.data_sources.UPDATE_DATA_SOURCE,
+        self._store.dispatch(Action(UPDATE_DATA_SOURCE,
                                     data_source_from_config_values(uuid, config_values)))
         self._view_manager.close_dialog()
 
     def _dispatch_add_data_source(self, _, config_values: tuple[ConfigValue, ...], uuid: UUID):
-        self._store.dispatch(Action(state.data_sources.ADD_DATA_SOURCE,
+        self._store.dispatch(Action(ADD_DATA_SOURCE,
                                     data_source_from_config_values(uuid, config_values)))
         self._view_manager.close_dialog()
 
-    def _dispatch_delete_data_source(self, _, data_source: state.data_sources.DataSource):
-        self._store.dispatch(Action(state.data_sources.DELETE_DATA_SOURCE, data_source))
+    def _dispatch_delete_data_source(self, _, data_source: DataSourceInstance):
+        self._store.dispatch(Action(DELETE_DATA_SOURCE, data_source))
         self._view_manager.close_dialog()
 
     def _update(self) -> None:
