@@ -10,14 +10,10 @@ AggregateCallback = Callable[[], Awaitable[AGGREGATE]]
 
 
 class BaseAggregate(Aggregate[SELECT, RESULT, AGGREGATE]):
-    _select_callback: SelectCallback
-    _aggregate_callback: AggregateCallback
-    _event: Event
-    _aggregate: AGGREGATE
-
     def __init__(self,
                  select_callback: SelectCallback,
                  aggregate_callback: AggregateCallback) -> None:
+        self._aggregate: AGGREGATE | None = None
         self._select_callback = select_callback
         self._aggregate_callback = aggregate_callback
         self._event = Event()

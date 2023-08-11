@@ -6,7 +6,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from injector import singleton, inject
 
-from application.application_module import SaltFile, DataFile
+from base_types import SaltFile, DataFile
 from lib.redux.reducer import Action
 from lib.redux.store import Store
 from lib.serialization.serialization import serialize, deserialize
@@ -22,8 +22,6 @@ _SCRYPT_P = 1
 
 
 class DecryptionFailure(Exception):
-    invalid_token: InvalidToken
-
     def __init__(self, invalid_token: InvalidToken):
         super().__init__(u'Decryption failure')
         self.invalid_token = invalid_token
@@ -31,15 +29,11 @@ class DecryptionFailure(Exception):
 
 @singleton
 class Encryption:
-    _store: Store[State]
-    _salt_file: SaltFile
-    _data_file: DataFile
-    _salt: bytes
-    _passphrase: str = None
-    _fernet: Fernet = None
 
     @inject
     def __init__(self, store: Store[State], salt_file: SaltFile, data_file: DataFile):
+        self._passphrase: str | None = None
+        self._fernet: Fernet | None = None
         self._store = store
         self._data_file = data_file
         self._salt_file = salt_file
@@ -90,7 +84,7 @@ class Encryption:
         self._data_file.write_bytes(self._fernet.encrypt(serialized.encode()))
 
     def _decrypt(self):
-        _LOGGER.info('decrypt')
+        _LOGGER.info('export')
         try:
             encrypted = self._data_file.read_bytes()
             try:
@@ -101,7 +95,7 @@ class Encryption:
                 raise DecryptionFailure(invalid_token)
 
         except FileNotFoundError:
-            _LOGGER.info('decrypt: File not found')
+            _LOGGER.info('export: File not found')
             self._encrypt()
 
     def _update(self) -> None:

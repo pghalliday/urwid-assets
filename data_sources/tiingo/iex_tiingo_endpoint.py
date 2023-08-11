@@ -1,7 +1,9 @@
 import logging
+from datetime import datetime
 
 from data_sources.tiingo.config_names import TICKER
 from data_sources.tiingo.tiingo_endpoint import TiingoEndpoint, TiingoEndpointAggregate
+from data_sources.tiingo.tiingo_endpoint_historical_aggregate import TiingoEndpointHistoricalAggregate
 from lib.data_sources.models import DataSourceConfigField, StringDataSourceConfigField
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,3 +32,13 @@ class IEXTiingoEndpoint(TiingoEndpoint):
                                        api_key,
                                        'iex/',
                                        lambda entry: entry['last'])
+
+    def create_historical_aggregate(self,
+                                    timestamp: datetime,
+                                    base_url: str,
+                                    api_key: str) -> TiingoEndpointHistoricalAggregate:
+        return TiingoEndpointHistoricalAggregate(timestamp,
+                                                 base_url,
+                                                 api_key,
+                                                 'iex',
+                                                 lambda json: json[0][open])

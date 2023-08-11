@@ -1,6 +1,8 @@
 import logging
+from datetime import datetime
 
 from data_sources.tiingo.config_names import TICKER
+from data_sources.tiingo.crypto_tiingo_endpoint_historical_aggregate import CryptoTiingoEndpointHistoricalAggregate
 from data_sources.tiingo.tiingo_endpoint import TiingoEndpoint
 from data_sources.tiingo.tiingo_endpoint_aggregate import TiingoEndpointAggregate
 from lib.data_sources.models import DataSourceConfigField, StringDataSourceConfigField
@@ -31,3 +33,11 @@ class CryptoTiingoEndpoint(TiingoEndpoint):
                                        api_key,
                                        'tiingo/crypto/top',
                                        lambda entry: entry['topOfBookData'][0]['bidPrice'])
+
+    def create_historical_aggregate(self,
+                                    timestamp: datetime,
+                                    base_url: str,
+                                    api_key: str) -> CryptoTiingoEndpointHistoricalAggregate:
+        return CryptoTiingoEndpointHistoricalAggregate(timestamp,
+                                                       base_url,
+                                                       api_key)

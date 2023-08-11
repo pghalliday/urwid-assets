@@ -1,7 +1,10 @@
+from datetime import datetime
+
 from data_sources.crypto_compare.asset_crypto_compare_endpoint import AssetCryptoCompareEndpoint
 from data_sources.crypto_compare.config_names import BASE_URL, API_KEY
 from data_sources.crypto_compare.crypto_compare_aggregate import CryptoCompareAggregate
 from data_sources.crypto_compare.crypto_compare_endpoint import CryptoCompareEndpoint
+from data_sources.crypto_compare.crypto_compare_historical_aggregate import CryptoCompareHistoricalAggregate
 from lib.data_sources.data_source import DataSource
 from lib.data_sources.data_source_aggregate import DataSourceAggregate
 from lib.data_sources.models import DataSourceConfigField, StringDataSourceConfigField, DataSourceEndpoint, \
@@ -11,9 +14,10 @@ CRYPTO_COMPARE = 'crypto-compare'
 
 
 class CryptoCompare(DataSource):
-    _endpoints: tuple[CryptoCompareEndpoint, ...] = (
-        AssetCryptoCompareEndpoint(),
-    )
+    def __init__(self):
+        self._endpoints: tuple[CryptoCompareEndpoint, ...] = (
+            AssetCryptoCompareEndpoint(),
+        )
 
     def get_name(self) -> str:
         return CRYPTO_COMPARE
@@ -48,3 +52,10 @@ class CryptoCompare(DataSource):
         base_url = get_string_from_config(BASE_URL, config)
         api_key = get_string_from_config(API_KEY, config)
         return CryptoCompareAggregate(base_url, api_key, self._endpoints)
+
+    def create_historical_aggregate(self,
+                                    timestamp: datetime,
+                                    config: tuple[DataSourceConfig, ...]) -> DataSourceAggregate:
+        base_url = get_string_from_config(BASE_URL, config)
+        api_key = get_string_from_config(API_KEY, config)
+        return CryptoCompareHistoricalAggregate(timestamp, base_url, api_key, self._endpoints)

@@ -1,8 +1,11 @@
 import logging
+from datetime import datetime
 
 from data_sources.crypto_compare.config_names import FSYM, TSYM
 from data_sources.crypto_compare.crypto_compare_endpoint import CryptoCompareEndpoint
 from data_sources.crypto_compare.crypto_compare_endpoint_aggregate import CryptoCompareEndpointAggregate
+from data_sources.crypto_compare.crypto_compare_endpoint_historical_aggregate import \
+    CryptoCompareEndpointHistoricalAggregate
 from lib.data_sources.models import DataSourceConfigField, StringDataSourceConfigField
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,3 +38,12 @@ class AssetCryptoCompareEndpoint(CryptoCompareEndpoint):
         return CryptoCompareEndpointAggregate(base_url,
                                               api_key,
                                               'data/pricemulti')
+
+    def create_historical_aggregate(self,
+                                    timestamp: datetime,
+                                    base_url: str,
+                                    api_key: str) -> CryptoCompareEndpointHistoricalAggregate:
+        return CryptoCompareEndpointHistoricalAggregate(timestamp,
+                                                        base_url,
+                                                        api_key,
+                                                        'data/pricehistorical')

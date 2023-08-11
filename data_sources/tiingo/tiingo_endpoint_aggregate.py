@@ -11,12 +11,6 @@ JsonSelector = Callable[[dict], str]
 
 
 class TiingoEndpointAggregate(BaseAggregate[str, QueryResult, dict]):
-    _base_url: str
-    _api_key: str
-    _url_path: str
-    _json_selector: JsonSelector
-    _tickers: tuple[str, ...] = tuple()
-
     def __init__(self,
                  base_url: str,
                  api_key: str,
@@ -26,6 +20,7 @@ class TiingoEndpointAggregate(BaseAggregate[str, QueryResult, dict]):
         self._api_key = api_key
         self._url_path = url_path
         self._json_selector = json_selector
+        self._tickers: tuple[str, ...] = tuple()
         super().__init__(self._select_callback, self._aggregate_callback)
 
     async def _aggregate_callback(self) -> dict:
@@ -40,12 +35,12 @@ class TiingoEndpointAggregate(BaseAggregate[str, QueryResult, dict]):
                 return await response.json()
 
     def _select_callback(self, ticker: str, response: dict) -> QueryResult:
-        matching_entries = tuple(filter(lambda entry: entry['ticker'] == ticker, response))
         try:
+            matching_entries = tuple(filter(lambda entry: entry['ticker'] == ticker, response))
             entry = matching_entries[0]
             return QueryResult(price=Decimal(self._json_selector(entry)))
-        except IndexError:
-            return QueryResult(error='Ticker not found')
+        except (IndexError, TypeError, KeyError):
+            return QueryResult(error='Something went wrong')
 
     async def select(self, ticker: str) -> QueryResult:
         self._tickers += (ticker,)

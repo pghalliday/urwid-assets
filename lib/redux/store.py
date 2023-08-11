@@ -9,12 +9,10 @@ Unsubscribe = Callable[[], None]
 
 
 class Store(Generic[STATE]):
-    _subscriptions: tuple[Subscription, ...] = tuple()
-    _state: STATE = None
-    _reducer: Reducer
-    _dispatching: bool = False
-
     def __init__(self, reducer: Reducer, initial_state: STATE | None = None):
+        self._subscriptions: tuple[Subscription, ...] = tuple()
+        self._state: STATE = None
+        self._dispatching: bool = False
         self._reducer = reducer
         self._state = reducer(None, INIT_ACTION) if initial_state is None else initial_state
 

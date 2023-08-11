@@ -2,14 +2,11 @@ from asyncio import TaskGroup
 
 from data_sources.crypto_compare.config_names import FSYM, TSYM
 from data_sources.crypto_compare.crypto_compare_endpoint import CryptoCompareEndpoint
-from data_sources.crypto_compare.crypto_compare_endpoint_aggregate import CryptoCompareEndpointAggregate
 from lib.data_sources.data_source_aggregate import DataSourceAggregate
 from lib.data_sources.models import get_string_from_config, Query, QueryResult
 
 
 class CryptoCompareAggregate(DataSourceAggregate):
-    _aggregates: dict[str, CryptoCompareEndpointAggregate]
-
     def __init__(self,
                  base_url: str,
                  api_key: str,

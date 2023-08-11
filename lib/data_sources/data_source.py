@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from lib.data_sources.data_source_aggregate import DataSourceAggregate
 from lib.data_sources.models import DataSourceConfigField, DataSourceEndpoint, DataSourceConfig
 
@@ -18,4 +20,9 @@ class DataSource:
         pass
 
     def create_aggregate(self, config: tuple[DataSourceConfig, ...]) -> DataSourceAggregate:
+        pass
+
+    def create_historical_aggregate(self,
+                                    timestamp: datetime,
+                                    config: tuple[DataSourceConfig, ...]) -> DataSourceAggregate:
         pass
