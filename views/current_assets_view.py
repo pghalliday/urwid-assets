@@ -1,4 +1,5 @@
 import logging
+from asyncio import create_task
 from decimal import Decimal
 from uuid import uuid1, UUID
 
@@ -6,6 +7,7 @@ from injector import inject, singleton
 from urwid import Frame, Columns, Text, connect_signal, LineBox, WidgetWrap, RIGHT
 
 from lib.data_sources.data_source import DataSource
+from lib.data_sources.data_sources import DataSources
 from lib.redux.reselect import create_selector, SelectorOptions
 from lib.redux.store import Store, Action
 from lib.widgets.dialogs.config_dialog import ConfigDialog, ConfigValue
@@ -22,7 +24,7 @@ LOGGER = logging.getLogger(__name__)
 
 COLUMNS = (
     Column(2, u'Name'),
-    Column(1, u'Amount'),
+    Column(1, u'Amount', RIGHT),
     Column(1, u'Price', RIGHT),
     Column(1, u'Value', RIGHT),
 )
@@ -30,11 +32,19 @@ NOT_LOADED_TEXT = u'Not loaded'
 
 
 def _format_amount(amount: Decimal) -> str:
-    return '{:n}'.format(amount)
+    return f'{amount:,.2f}'
 
 
 def _format_currency(currency: Decimal) -> str:
     return f'{currency:,.2f}'
+
+
+def _get_value_text(asset: Asset) -> str:
+    if asset.error is None:
+        if asset.price is None:
+            return NOT_LOADED_TEXT
+        return _format_currency(asset.price * asset.amount)
+    return asset.error
 
 
 def _get_price_text(asset: Asset) -> str:
@@ -53,7 +63,7 @@ _select_rows = create_selector((
         asset.name,
         _format_amount(asset.amount),
         _get_price_text(asset),
-        _get_price_text(asset),
+        _get_value_text(asset),
     ),
     asset,
 ), SelectorOptions(dimensions=(1,)))
@@ -76,7 +86,8 @@ class CurrentAssetsView(LinkedView):
     _store: Store[State]
     _view_manager: ViewManager
     _default_asset_dialog_config_factory: DefaultAssetDialogConfigFactory
-    _data_sources: tuple[DataSource, ...]
+    _data_sources: DataSources
+    _data_source_list: tuple[DataSource, ...]
     _table: Table
     _total_text: Text
 
@@ -85,11 +96,13 @@ class CurrentAssetsView(LinkedView):
                  store: Store[State],
                  view_manager: ViewManager,
                  default_asset_dialog_config_factory: DefaultAssetDialogConfigFactory,
-                 data_sources: tuple[DataSource, ...]) -> None:
+                 data_sources: DataSources,
+                 data_source_list: tuple[DataSource, ...]) -> None:
         self._store = store
         self._view_manager = view_manager
         self._default_asset_dialog_config_factory = default_asset_dialog_config_factory
         self._data_sources = data_sources
+        self._data_source_list = data_source_list
         self._table = Table(COLUMNS, _select_rows(self._store.get_state()))
         self._total_text = Text(_select_total(self._store.get_state()), align=RIGHT)
         super().__init__(Frame(
@@ -130,6 +143,9 @@ class CurrentAssetsView(LinkedView):
             if row is not None:
                 self._store.dispatch(Action(MOVE_ASSET_UP, row.data))
             return None
+        if key in ('r', 'R'):
+            create_task(self._data_sources.refresh_all())
+            return None
         if key in ('s', 'S'):
             LOGGER.info('TODO: snapshots')
             return None
@@ -145,6 +161,7 @@ class CurrentAssetsView(LinkedView):
                                      u' backspace - Delete the selected asset',
                                      u' k         - Move the selected asset UP',
                                      u' j         - Move the selected asset DOWN',
+                                     u' r         - Refresh prices',
                                      u' s         - take a snapshot (TODO)',
                                      u'',
                                      u' q - quit',
