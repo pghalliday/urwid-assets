@@ -1,8 +1,11 @@
+from asyncio import create_task
+
 from injector import inject, singleton
 from urwid import connect_signal, ExitMainLoop
 
 from application.application_module import ShowLogPanel
-from encryption import Encryption, DecryptionFailure
+from encryption.encryption import Encryption, DecryptionFailure
+from lib.data_sources.data_sources import DataSources
 from lib.widgets.dialogs.config_dialog import ConfigDialog, ConfigValue, StringConfigValue
 from lib.widgets.views.columns_view import ColumnsView, Column
 from lib.widgets.views.view_manager import ViewManager
@@ -16,19 +19,22 @@ from views.log_view import LogView
 class ApplicationView(ViewWrap):
     _view_manager: ViewManager
     _encryption: Encryption
+    _data_sources: DataSources
     _layout_view: LayoutView
 
     @inject
     def __init__(
             self,
-            log_view: LogView,
             view_manager: ViewManager,
-            layout_view: LayoutView,
             encryption: Encryption,
+            data_sources: DataSources,
+            layout_view: LayoutView,
+            log_view: LogView,
             show_log_panel: ShowLogPanel,
     ) -> None:
         self._view_manager = view_manager
         self._encryption = encryption
+        self._data_sources = data_sources
         self._layout_view = layout_view
         self._prompt_for_passphrase()
         if show_log_panel:
@@ -57,6 +63,7 @@ class ApplicationView(ViewWrap):
         passphrase = passphrase_value.value
         try:
             self._encryption.init_passphrase(passphrase)
+            create_task(self._data_sources.refresh_all())
         except DecryptionFailure:
             self._prompt_for_passphrase(u'Error: Failed to decrypt data file')
             return

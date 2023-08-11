@@ -3,14 +3,15 @@ from uuid import UUID
 
 from injector import inject, singleton
 
-import state.data_sources
-from lib.data_source import DataSourceConfigField, StringDataSourceConfigField, DataSourceEndpoint, \
-    DataSource
+from lib.data_sources.data_source import DataSource
+from lib.data_sources.models import DataSourceConfigField, StringDataSourceConfigField, DataSourceEndpoint, \
+    DataSourceConfig, StringDataSourceConfig
 from lib.redux.store import Store
 from lib.widgets.dialogs.config_dialog import StringConfigField, ConfigField, ChoiceConfigField, ConfigFieldChoice, \
     DecimalConfigField, ConfigValue, StringConfigValue, DecimalConfigValue, ChoiceConfigValue
-from state import State
-from state.assets import Asset, AssetDataSource, AssetDataSourceConfig, StringAssetDataSourceConfig
+from state.assets.assets import AssetDataSource, Asset
+from state.data_sources.data_sources import DataSourceInstance
+from state.state import State
 
 
 class UnknownDataSource(Exception):
@@ -69,11 +70,11 @@ def _create_endpoint_config(endpoints: tuple[DataSourceEndpoint, ...]) -> Choice
     )
 
 
-def _create_field_config_from_asset(field: tuple[ConfigField, AssetDataSourceConfig]) -> ConfigField:
+def _create_field_config_from_asset(field: tuple[ConfigField, DataSourceConfig]) -> ConfigField:
     (config_field, asset_data_source_config) = field
     assert config_field.name == asset_data_source_config.name
     if isinstance(config_field, StringConfigField):
-        assert isinstance(asset_data_source_config, StringAssetDataSourceConfig)
+        assert isinstance(asset_data_source_config, StringDataSourceConfig)
         return StringConfigField(
             name=config_field.name,
             display_name=config_field.display_name,
@@ -85,7 +86,7 @@ def _create_field_config_from_asset(field: tuple[ConfigField, AssetDataSourceCon
 
 def _apply_asset_to_endpoint_config_sub_fields(
         endpoint_choice: ConfigFieldChoice,
-        asset_endpoint_config: tuple[AssetDataSourceConfig, ...]
+        asset_endpoint_config: tuple[DataSourceConfig, ...]
 ) -> ConfigFieldChoice:
     zipped_sub_fields = zip(endpoint_choice.sub_fields, asset_endpoint_config)
     return ConfigFieldChoice(
@@ -135,9 +136,9 @@ def apply_asset_to_asset_dialog_config(asset_dialog_config: tuple[ConfigField, .
     )
 
 
-def _asset_endpoint_config_from_config_value(config_value: ConfigValue) -> AssetDataSourceConfig:
+def _asset_endpoint_config_from_config_value(config_value: ConfigValue) -> DataSourceConfig:
     if isinstance(config_value, StringConfigValue):
-        return StringAssetDataSourceConfig(
+        return StringDataSourceConfig(
             name=config_value.name,
             value=config_value.value,
         )
@@ -146,7 +147,7 @@ def _asset_endpoint_config_from_config_value(config_value: ConfigValue) -> Asset
 
 def _asset_endpoint_from_config_value(
         endpoint_config_value: ChoiceConfigValue
-) -> tuple[str, tuple[AssetDataSourceConfig]]:
+) -> tuple[str, tuple[DataSourceConfig, ...]]:
     return (
         endpoint_config_value.value,
         tuple(_asset_endpoint_config_from_config_value(config_value)
@@ -177,7 +178,6 @@ def asset_from_config_values(uuid: UUID, config_values: tuple[ConfigValue, ...])
         name=name_config_value.value,
         amount=amount_config_value.value,
         data_source=_asset_data_source_from_config_value(data_source_config_value),
-        price=Decimal(-1),
     )
 
 
@@ -199,7 +199,7 @@ class DefaultAssetDialogConfigFactory:
 
     def _create_data_source_choice(
             self,
-            data_source_state: state.data_sources.DataSource
+            data_source_state: DataSourceInstance
     ) -> ConfigFieldChoice:
         data_source = self._get_data_source(data_source_state.type)
         return ConfigFieldChoice(
@@ -211,7 +211,7 @@ class DefaultAssetDialogConfigFactory:
     def _create_data_source_config(self) -> ChoiceConfigField:
         data_source_states = self._store.get_state().data_sources
         return ChoiceConfigField(
-            name='data_source',
+            name='data_sources',
             display_name=u'Data source',
             value=data_source_states[0].uuid,
             choices=tuple(self._create_data_source_choice(data_source) for data_source in data_source_states)

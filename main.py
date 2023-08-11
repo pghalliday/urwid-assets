@@ -4,7 +4,7 @@ from pathlib import Path
 
 from injector import Injector
 
-from application import Application
+from application.application import Application
 from application.application_module import ApplicationModule
 
 _DOT_FOLDER = '.urwid-assets'
@@ -51,6 +51,10 @@ def parse_args() -> Namespace:
                         help=u'Show the log panel',
                         action='store_true',
                         dest='show_log_panel')
+    parser.add_argument('-i', '--init-with-test-data',
+                        help=u'Initialise with test data',
+                        action='store_true',
+                        dest='init_with_test_data')
     return parser.parse_args()
 
 
@@ -68,6 +72,7 @@ if __name__ == '__main__':
     setup_logger(args.log_level, args.log_file)
     injector = Injector(ApplicationModule(salt_file=args.salt_file,
                                           data_file=args.data_file,
-                                          show_log_panel=args.show_log_panel))
+                                          show_log_panel=args.show_log_panel,
+                                          init_with_test_data=args.init_with_test_data))
     application = injector.get(Application)
     application.start()

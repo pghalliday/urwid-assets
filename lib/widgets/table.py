@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Callable, TypeVar, Generic
 from uuid import UUID, uuid1
 
-from urwid import WidgetWrap, Pile, Columns, Divider, ListBox, Widget, Text, SimpleFocusListWalker, AttrMap, Frame
+from urwid import WidgetWrap, Pile, Columns, Divider, ListBox, Widget, Text, SimpleFocusListWalker, AttrMap, Frame, LEFT
 
 from lib.widgets.selectable_text import SelectableText
 
@@ -23,19 +23,21 @@ class Row(Generic[DATA]):
 class Column:
     weight: int
     name: str
+    align: str = LEFT
 
 
 @dataclass(frozen=True)
 class _ColumnData:
     weight: int
-    create_widget: Callable[[str], Widget]
+    align: str
+    create_widget: Callable[[str, str], Widget]
 
 
 def _create_cell_tuple(cell_data: tuple[_ColumnData, str]) -> tuple[str, int, Widget]:
     (column_data, text) = cell_data
     return 'weight', \
         column_data.weight, \
-        column_data.create_widget(text)
+        column_data.create_widget(text, column_data.align)
 
 
 class _Row(WidgetWrap, Generic[DATA]):
@@ -69,7 +71,9 @@ class _RowFactory(Generic[DATA]):
 
 def _create_row_factory(columns: tuple[Column, ...]) -> _RowFactory[DATA]:
     return _RowFactory(tuple(
-        _ColumnData(column.weight, SelectableText if index == 0 else Text)
+        _ColumnData(column.weight,
+                    column.align,
+                    SelectableText if index == 0 else Text)
         for index, column in enumerate(columns)
     ))
 
@@ -82,7 +86,7 @@ class _IndexChange:
 
 def _create_header(columns: tuple[Column, ...]) -> Pile:
     (header_column_params, column_names) = zip(*tuple(
-        (_ColumnData(column.weight, Text), column.name)
+        (_ColumnData(column.weight, column.align, lambda text, align: Text(text, align=align)), column.name)
         for column in columns
     ))
     return Pile([
@@ -179,7 +183,14 @@ class Table(WidgetWrap, Generic[DATA]):
             return self._row_list[index]
 
     def update(self, rows: tuple[Row[DATA], ...]) -> None:
-        if rows is not self._rows:
+        if len(self._rows) == 0:
+            # optimize for initial load and ensure first entry is focused
+            for row in rows:
+                self._row_list.append(self._create_row(row))
+            if len(self._row_list) > 0:
+                self._row_list.focus = 0
+            self._rows = rows
+        elif rows is not self._rows:
             # apply changes to list efficiently
             diff = Diff(self._rows, rows)
             # first update the changed items before the indices change

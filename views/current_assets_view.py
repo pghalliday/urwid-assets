@@ -3,9 +3,9 @@ from decimal import Decimal
 from uuid import uuid1, UUID
 
 from injector import inject, singleton
-from urwid import Frame, Columns, Text, connect_signal, LineBox, WidgetWrap
+from urwid import Frame, Columns, Text, connect_signal, LineBox, WidgetWrap, RIGHT
 
-from lib.data_source import DataSource
+from lib.data_sources.data_source import DataSource
 from lib.redux.reselect import create_selector, SelectorOptions
 from lib.redux.store import Store, Action
 from lib.widgets.dialogs.config_dialog import ConfigDialog, ConfigValue
@@ -13,8 +13,8 @@ from lib.widgets.dialogs.message_box import MessageBox, MessageBoxButtons
 from lib.widgets.table import Column, Row, Table
 from lib.widgets.views.linked_view import LinkedView
 from lib.widgets.views.view_manager import ViewManager
-from state import State
-from state.assets import MOVE_ASSET_DOWN, MOVE_ASSET_UP, Asset, UPDATE_ASSET, ADD_ASSET, DELETE_ASSET
+from state.assets.assets import MOVE_ASSET_DOWN, MOVE_ASSET_UP, Asset, UPDATE_ASSET, ADD_ASSET, DELETE_ASSET
+from state.state import State
 from views.helpers.asset_dialog_config import DefaultAssetDialogConfigFactory, apply_asset_to_asset_dialog_config, \
     asset_from_config_values
 
@@ -23,18 +23,26 @@ LOGGER = logging.getLogger(__name__)
 COLUMNS = (
     Column(2, u'Name'),
     Column(1, u'Amount'),
-    Column(1, u'Price'),
-    Column(1, u'Value'),
+    Column(1, u'Price', RIGHT),
+    Column(1, u'Value', RIGHT),
 )
-LOADING_TEXT = u'Loading...'
+NOT_LOADED_TEXT = u'Not loaded'
 
 
 def _format_amount(amount: Decimal) -> str:
-    return '{}'.format(amount)
+    return '{:n}'.format(amount)
 
 
 def _format_currency(currency: Decimal) -> str:
-    return '{}'.format(currency)
+    return f'{currency:,.2f}'
+
+
+def _get_price_text(asset: Asset) -> str:
+    if asset.error is None:
+        if asset.price is None:
+            return NOT_LOADED_TEXT
+        return _format_currency(asset.price)
+    return asset.error
 
 
 _select_rows = create_selector((
@@ -44,16 +52,16 @@ _select_rows = create_selector((
     (
         asset.name,
         _format_amount(asset.amount),
-        LOADING_TEXT if asset.price < 0 else _format_currency(asset.price),
-        LOADING_TEXT if asset.price < 0 else _format_currency(asset.price * asset.amount)
+        _get_price_text(asset),
+        _get_price_text(asset),
     ),
     asset,
 ), SelectorOptions(dimensions=(1,)))
 
 _select_total = create_selector((
     lambda state: state.assets,
-), lambda assets: _format_currency(
-    sum(tuple(asset.price * asset.amount if asset.price > 0 else Decimal(0.0)
+), lambda assets: 'Total: ' + _format_currency(
+    sum(tuple(asset.price * asset.amount if asset.price is not None else Decimal(0.0)
               for asset in assets))
 ))
 
@@ -83,14 +91,12 @@ class CurrentAssetsView(LinkedView):
         self._default_asset_dialog_config_factory = default_asset_dialog_config_factory
         self._data_sources = data_sources
         self._table = Table(COLUMNS, _select_rows(self._store.get_state()))
-        self._total_text = Text(_select_total(self._store.get_state()))
+        self._total_text = Text(_select_total(self._store.get_state()), align=RIGHT)
         super().__init__(Frame(
             LineBox(self._table),
             Header(),
             LineBox(Columns((
                 ('weight', 1, Text(u'h - Help')),
-                ('weight', 2, Text(u'')),
-                ('weight', 1, Text(u'Total: ', align='right')),
                 ('weight', 1, self._total_text),
             ))),
         ), store)
