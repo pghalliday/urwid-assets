@@ -8,4 +8,6 @@ dependencies:
   - injector
   - cryptography
   - aiohttp
+  # The following are not really dependencies but are used in testing, etc
   - requests
+  - python-dateutil

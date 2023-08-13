@@ -62,5 +62,4 @@ def get_string_from_config(name: str, config: tuple[DataSourceConfig, ...]):
         if field.name == name:
             assert isinstance(field, StringDataSourceConfig)
             return field.value
-
     raise UnknownConfigField(name)

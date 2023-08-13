@@ -34,7 +34,8 @@ class _CacheHit:
 
 
 class _Level2Cache:
-    _results: dict[tuple[Any, ...], Any] = {}
+    def __init__(self):
+        self._results: dict[tuple[Any, ...], Any] = {}
 
     def push(self, args: tuple[Any, ...], result: Any) -> None:
         self._results[args] = result
@@ -53,11 +54,10 @@ class _Level2Cache:
 
 
 class _Level2CacheHistory:
-    _options: SelectorCacheOptions
-    _next_cache: _Level2Cache | None = None
-    _caches: tuple[_Level2Cache, ...] = tuple()
 
     def __init__(self, options: SelectorCacheOptions):
+        self._next_cache: _Level2Cache | None = None
+        self._caches: tuple[_Level2Cache, ...] = tuple()
         self._options = options
 
     def start_next(self):
@@ -83,10 +83,9 @@ class _Level2CacheHistory:
 
 
 class _Level1Cache:
-    _options: SelectorCacheOptions
-    _results: dict[tuple[Any, ...], Any] = {}
 
     def __init__(self, options: SelectorCacheOptions):
+        self._results: dict[tuple[Any, ...], Any] = {}
         self._options = options
 
     def find(self, args: tuple[Any, ...]) -> _CacheHit | None:

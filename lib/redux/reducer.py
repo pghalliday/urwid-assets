@@ -11,8 +11,6 @@ class ActionType:
 
 
 class ActionTypeFactory:
-    _namespace: str
-
     def __init__(self, namespace: str) -> None:
         self._namespace = namespace
 

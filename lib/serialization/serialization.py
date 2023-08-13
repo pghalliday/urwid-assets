@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from decimal import Decimal
 from types import UnionType
 from typing import Any, get_type_hints, Callable, Type, TypeVar, get_origin, get_args
@@ -25,6 +26,8 @@ def _serialize(value: Any) -> Any:
         return str(value)
     if isinstance(value, (str, int, bool)):
         return value
+    if isinstance(value, datetime):
+        return value.isoformat()
     return _serialize_kwargs(value)
 
 
@@ -47,6 +50,9 @@ def _deserialize(arg: Any, field_type: type):
     if issubclass(field_type, (str, int, bool)):
         assert isinstance(arg, field_type)
         return arg
+    if issubclass(field_type, datetime):
+        assert isinstance(arg, str)
+        return datetime.fromisoformat(arg)
     return _deserialize_kwargs(field_type, **arg)
 
 
@@ -55,10 +61,11 @@ def _get_full_class_name(cls) -> str:
 
 
 class _SubTypeRegistry:
-    _field_registry: dict[str, str] = {}
-    _tag_registry: dict[str, str] = {}
-    _sub_type_registry: dict[str, str] = {}
-    _base_type_registry: dict[str, dict[str, type]] = {}
+    def __init__(self):
+        self._field_registry: dict[str, str] = {}
+        self._tag_registry: dict[str, str] = {}
+        self._sub_type_registry: dict[str, str] = {}
+        self._base_type_registry: dict[str, dict[str, type]] = {}
 
     def register_field(self, cls: type, field: str):
         self._field_registry[_get_full_class_name(cls)] = field

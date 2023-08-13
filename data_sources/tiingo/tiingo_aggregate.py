@@ -2,13 +2,11 @@ from asyncio import TaskGroup
 
 from data_sources.tiingo.config_names import TICKER
 from data_sources.tiingo.tiingo_endpoint import TiingoEndpoint
-from data_sources.tiingo.tiingo_endpoint_aggregate import TiingoEndpointAggregate
 from lib.data_sources.data_source_aggregate import DataSourceAggregate
 from lib.data_sources.models import get_string_from_config, Query, QueryResult
 
 
 class TiingoAggregate(DataSourceAggregate):
-    _aggregates: dict[str, TiingoEndpointAggregate]
 
     def __init__(self,
                  base_url: str,
