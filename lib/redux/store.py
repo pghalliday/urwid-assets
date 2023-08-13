@@ -24,11 +24,9 @@ class Store(Generic[STATE]):
 
         return unsubscribe
 
-    def dispatch(self, actions: Action | tuple[Action, ...]):
+    def dispatch(self, *actions: Action):
         assert not self._dispatching
         self._dispatching = True
-        if isinstance(actions, Action):
-            actions = (actions,)
         for action in actions:
             self._state = self._reducer(self._state, action)
         for subscription in self._subscriptions:

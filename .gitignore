@@ -4,3 +4,4 @@ __pycache__/
 .urwid-assets
 test_secrets.py
 export.json
+export.csv

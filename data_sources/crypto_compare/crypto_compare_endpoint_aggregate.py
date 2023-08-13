@@ -1,16 +1,16 @@
-from decimal import Decimal
 from urllib.parse import urljoin
 
 from aiohttp import ClientSession
 
 from lib.asyncio.base_aggregate import BaseAggregate
 from lib.data_sources.models import QueryResult
+from lib.json.decimal_decoder import loads_with_decimal
 
 
 def _select_callback(pair: (str, str), response: dict) -> QueryResult:
     (fsym, tsym) = pair
     try:
-        return QueryResult(price=Decimal(response[fsym][tsym]))
+        return QueryResult(price=response[fsym][tsym])
     except (KeyError, TypeError, IndexError):
         return QueryResult(error='Something went wrong')
 
@@ -39,7 +39,7 @@ class CryptoCompareEndpointAggregate(BaseAggregate[tuple[str, str], QueryResult,
             }, headers={
                 'Content-Type': 'application/json',
             }) as response:
-                return await response.json()
+                return await response.json(loads=loads_with_decimal)
 
     async def select(self, pair: (str, str)) -> QueryResult:
         self._pairs += (pair,)

@@ -1,11 +1,11 @@
 from datetime import datetime
-from decimal import Decimal
 from urllib.parse import urljoin
 
 from aiohttp import ClientSession
 
 from lib.asyncio.aggregate import Aggregate
 from lib.data_sources.models import QueryResult
+from lib.json.decimal_decoder import loads_with_decimal
 
 
 class CryptoCompareEndpointHistoricalAggregate(Aggregate[tuple[str, str], QueryResult, None]):
@@ -31,8 +31,8 @@ class CryptoCompareEndpointHistoricalAggregate(Aggregate[tuple[str, str], QueryR
             }, headers={
                 'Content-Type': 'application/json',
             }) as response:
-                json = await response.json()
+                json = await response.json(loads=loads_with_decimal)
                 try:
-                    return QueryResult(price=Decimal(json[fsym][tsym]))
+                    return QueryResult(price=json[fsym][tsym])
                 except (KeyError, IndexError, TypeError):
                     return QueryResult(error='Something went wrong')

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from urwid import Text, Divider, Columns, Button, Pile, Edit, WidgetWrap, connect_signal, WidgetPlaceholder
@@ -28,7 +29,7 @@ class ConfigField:
         pass
 
     def get_caption_width(self) -> int:
-        pass
+        return len(self.display_name)
 
 
 @dataclass(frozen=True)
@@ -39,9 +40,6 @@ class StringConfigField(ConfigField):
     def get_edit(self, caption_column_width: int) -> _StringConfigEdit:
         return _StringConfigEdit(self, caption_column_width)
 
-    def get_caption_width(self) -> int:
-        return len(self.display_name)
-
 
 @dataclass(frozen=True)
 class DecimalConfigField(ConfigField):
@@ -49,9 +47,6 @@ class DecimalConfigField(ConfigField):
 
     def get_edit(self, caption_column_width: int) -> _DecimalConfigEdit:
         return _DecimalConfigEdit(self, caption_column_width)
-
-    def get_caption_width(self) -> int:
-        return len(self.display_name)
 
 
 @dataclass(frozen=True)
@@ -75,8 +70,13 @@ class DateTimeConfigField(ConfigField):
     def get_edit(self, caption_column_width: int) -> _DateTimeConfigEdit:
         return _DateTimeConfigEdit(self, caption_column_width)
 
-    def get_caption_width(self) -> int:
-        return len(self.display_name)
+
+@dataclass(frozen=True)
+class PathConfigField(ConfigField):
+    value: Path
+
+    def get_edit(self, caption_column_width: int) -> _PathConfigEdit:
+        return _PathConfigEdit(self, caption_column_width)
 
 
 class _ConfigEdit(WidgetWrap):
@@ -158,6 +158,20 @@ class _DateTimeConfigEdit(_ConfigEdit):
         return DateTimeConfigValue(self._name, datetime.fromisoformat(self._edit.get_edit_text()))
 
 
+class _PathConfigEdit(_ConfigEdit):
+    def __init__(self, config_field: PathConfigField, caption_column_width: int):
+        self._name = config_field.name
+        self._edit = Edit(edit_text=str(config_field.value))
+        super().__init__(Columns((
+            (caption_column_width, Text(config_field.display_name)),
+            (2, Text(u': ')),
+            self._edit,
+        )))
+
+    def get_value(self) -> ConfigValue:
+        return PathConfigValue(self._name, Path(self._edit.get_edit_text()))
+
+
 @dataclass(frozen=True)
 class ConfigValue:
     name: str
@@ -182,6 +196,11 @@ class ChoiceConfigValue(ConfigValue):
 @dataclass(frozen=True)
 class DateTimeConfigValue(ConfigValue):
     value: datetime
+
+
+@dataclass(frozen=True)
+class PathConfigValue(ConfigValue):
+    value: Path
 
 
 class ConfigDialog(View):
