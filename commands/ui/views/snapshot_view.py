@@ -71,11 +71,10 @@ def _quote(text: str) -> str:
 
 
 def _select_csv_from_assets(asset_snapshots: tuple[AssetSnapshot, ...]) -> str:
-    header_row = (_quote(u'Name'), _quote(u'Amount'), _quote(u'Price'), _quote(u'Value'))
+    header_row = (_quote(u'Name'), _quote(u'Amount'), _quote(u'Price'))
     asset_rows = tuple((_quote(asset_snapshot.name),
                         _quote(str(asset_snapshot.amount)),
-                        _quote(str(asset_snapshot.price)),
-                        _quote(str(asset_snapshot.amount * asset_snapshot.price)))
+                        _quote(str(asset_snapshot.price)))
                        for asset_snapshot in asset_snapshots)
     rows = (header_row,) + asset_rows
     return u'\n'.join(u','.join(row) for row in rows) + u'\n'
