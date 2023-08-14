@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- MacOS or Linux (I don't think windows terminals are supportede by Urwid)
+- MacOS or Linux (I don't think windows terminals are supported by Urwid)
 - [Anaconda](https://docs.anaconda.com/free/anaconda/install/index.html)
 
 Then create a `conda` environment and install dependencies with:
