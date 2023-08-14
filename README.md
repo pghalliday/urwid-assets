@@ -1,5 +1,57 @@
 # urwid-assets
 
+## Prerequisites
+
+- MacOS or Linux (I don't think windows terminals are supportede by Urwid)
+- [Anaconda](https://docs.anaconda.com/free/anaconda/install/index.html)
+
+Then create a `conda` environment and install dependencies with:
+
+```shell
+conda env create -f environment.yml
+```
+
+Activate the environment with:
+
+```shell
+conda activate urwid-assets
+```
+
+After adding new dependencies to `environment.yml`, update the environment with:
+
+```shell
+conda env update --file environment.yml --prune
+```
+
+## Usage
+
+Show CLI help with:
+
+```shell
+python main.py -h
+```
+
+Start the UI with:
+
+```shell
+python main.py ui
+```
+
+Export the raw JSON (decrypt)
+
+```shell
+python main.py export [EXPORT_FILE=export.json]
+```
+
+Import from exported JSON (encrypt)
+
+```shell
+python main.py import [EXPORT_FILE=export.json]
+```
+
+By default, data, salt and log files will be created under `~/.urwid/` but these paths can be configured through the CLI options
+
+
 ## TODO
 
 - split rates from assets to allow display of different currencies independent of data source pairs
