@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "urwid-assets"
+version = "0.1.0"
+description = "CLI portfolio tracking built with urwid"
+authors = ["Peter Halliday <pghalliday@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "urwid_assets", from = "src" }]
+
+[tool.poetry.scripts]
+urwid-assets = "urwid_assets.cli:cli"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+urwid = "^2.1.2"
+injector = "^0.21.0"
+cryptography = "^41.0.3"
+aiohttp = "^3.8.5"
+click = "^8.1.6"
+python-dateutil = "^2.8.2"
+
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.4.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
