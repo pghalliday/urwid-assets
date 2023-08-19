@@ -5,7 +5,7 @@ from urwid_assets.data_sources.crypto_compare.crypto_compare import CRYPTO_COMPA
 from urwid_assets.data_sources.tiingo.config_names import BASE_URL, API_KEY
 from urwid_assets.data_sources.tiingo.tiingo import TIINGO
 from urwid_assets.lib.data_sources.models import StringDataSourceConfig
-from urwid_assets.state.data_sources.data_sources import DataSourceInstance
+from urwid_assets.state.saved.data_sources.data_sources import DataSourceInstance
 
 _CRYPTO_COMPARE_DATA_SOURCE_UUID = uuid1()
 _TIINGO_DATA_SOURCE_UUID = uuid1()

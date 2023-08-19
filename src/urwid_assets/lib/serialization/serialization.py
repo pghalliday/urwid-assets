@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime
 from decimal import Decimal
 from types import UnionType
@@ -8,6 +7,7 @@ from typing import Any, get_type_hints, Callable, Type, TypeVar, get_origin, get
 from uuid import UUID
 
 T = TypeVar('T')
+S = TypeVar('S')
 
 
 class UnknownSubType(Exception):
@@ -17,7 +17,7 @@ class UnknownSubType(Exception):
         self.tag = tag
 
 
-def _serialize(value: Any) -> Any:
+def _serialize(value: T) -> Any:
     if value is None:
         return None
     if isinstance(value, tuple):
@@ -31,7 +31,7 @@ def _serialize(value: Any) -> Any:
     return _serialize_kwargs(value)
 
 
-def _deserialize(arg: Any, field_type: type):
+def _deserialize(arg: Any, field_type: Type[T]) -> Any:
     if arg is None:
         return None
     type_origin = get_origin(field_type)
@@ -65,14 +65,14 @@ class _SubTypeRegistry:
         self._field_registry: dict[str, str] = {}
         self._tag_registry: dict[str, str] = {}
         self._sub_type_registry: dict[str, str] = {}
-        self._base_type_registry: dict[str, dict[str, type]] = {}
+        self._base_type_registry: dict[str, dict[str, Type[T]]] = {}
 
-    def register_field(self, cls: type, field: str):
+    def register_field(self, cls: Type[T], field: str):
         self._field_registry[_get_full_class_name(cls)] = field
 
-    def register_tag(self, cls: type, tag: str):
+    def register_tag(self, cls: Type[T], tag: str):
         cls_name = _get_full_class_name(cls)
-        base: type = cls.__bases__[0]
+        base: Type[S] = cls.__bases__[0]
         base_name = _get_full_class_name(base)
         self._tag_registry[cls_name] = tag
         self._sub_type_registry[cls_name] = base_name
@@ -83,7 +83,7 @@ class _SubTypeRegistry:
             self._base_type_registry[base_name] = d
         d[tag] = cls
 
-    def set_tag(self, cls: type, d: dict[str, Any]) -> None:
+    def set_tag(self, cls: Type[T], d: dict[str, Any]) -> None:
         cls_name = _get_full_class_name(cls)
         try:
             tag = self._tag_registry[cls_name]
@@ -93,7 +93,7 @@ class _SubTypeRegistry:
         except KeyError:
             pass
 
-    def get_sub(self, cls: type, d: dict[str, Any]) -> type | None:
+    def get_sub(self, cls: Type[T], d: dict[str, Any]) -> Type[S] | None:
         cls_name = _get_full_class_name(cls)
         try:
             field = self._field_registry[cls_name]
@@ -107,7 +107,7 @@ class _SubTypeRegistry:
 _SUB_TYPE_REGISTRY = _SubTypeRegistry()
 
 
-def _serialize_kwargs(instance: Any) -> dict[Any, Any]:
+def _serialize_kwargs(instance: T) -> dict[str, Any]:
     kwargs = {}
     for prop, value in vars(instance).items():
         kwargs[prop] = _serialize(value)
@@ -115,12 +115,11 @@ def _serialize_kwargs(instance: Any) -> dict[Any, Any]:
     return kwargs
 
 
-def serialize(instance: Any):
-    kwargs = _serialize_kwargs(instance)
-    return json.dumps(kwargs)
+def serialize(instance: T) -> dict[str, Any]:
+    return _serialize_kwargs(instance)
 
 
-def _deserialize_kwargs(cls: type, **kwargs) -> Any:
+def _deserialize_kwargs(cls: Type[T], **kwargs) -> Type[T]:
     sub = _SUB_TYPE_REGISTRY.get_sub(cls, kwargs)
     if sub is None:
         field_types = {field_name: field_type
@@ -131,9 +130,8 @@ def _deserialize_kwargs(cls: type, **kwargs) -> Any:
     return _deserialize_kwargs(sub, **kwargs)
 
 
-def deserialize(cls: type, serialized: str) -> Any:
-    kwargs = json.loads(serialized)
-    return _deserialize_kwargs(cls, **kwargs)
+def deserialize(cls: Type[T], serialized: dict[str, Any]) -> T:
+    return _deserialize_kwargs(cls, **serialized)
 
 
 def serializable(

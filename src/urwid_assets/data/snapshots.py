@@ -5,15 +5,15 @@ from uuid import uuid1
 
 from dateutil.relativedelta import relativedelta
 
-from urwid_assets.state.snapshots.snapshots import Snapshot, AssetSnapshot
+from urwid_assets.state.saved.snapshots.snapshots import SnapshotAsset, Snapshot
 
 
-def _create_asset_snapshot(snapshot_index: int, index: int) -> AssetSnapshot:
-    return AssetSnapshot(
+def _create_asset_snapshot(snapshot_index: int, index: int) -> SnapshotAsset:
+    return SnapshotAsset(
         uuid=uuid1(),
         name=u'Asset %s - %s' % (snapshot_index, index),
         amount=Decimal(randrange(1, 10000000000)) / 10000,
-        price=Decimal(randrange(1, 1000000)) / 10000,
+        rate=Decimal(randrange(1, 1000000)) / 10000,
     )
 
 

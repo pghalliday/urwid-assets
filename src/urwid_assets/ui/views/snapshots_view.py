@@ -4,20 +4,23 @@ from injector import inject, singleton, ClassAssistedBuilder
 from urwid import Frame, Text, connect_signal, LineBox, WidgetWrap
 
 from urwid_assets.cli.ui import ContentView
-from urwid_assets.ui.views.helpers.snapshot_dialog_config import create_edit_snapshot_dialog_config, \
+from urwid_assets.lib.redux.reselect import create_selector, SelectorOptions
+from urwid_assets.lib.redux.store import Store, Action
+from urwid_assets.selectors.selectors import select_snapshots
+from urwid_assets.state.saved.snapshots.snapshots import Snapshot, MOVE_SNAPSHOT_UP, MOVE_SNAPSHOT_DOWN, \
+    UPDATE_SNAPSHOT, DELETE_SNAPSHOT
+from urwid_assets.state.state import State
+from urwid_assets.ui.views.helpers.format import format_timestamp
+from urwid_assets.ui.views.helpers.snapshot_dialog_config import create_snapshot_dialog_config, \
     snapshot_from_edit_config_values
 from urwid_assets.ui.views.snapshot_view import SnapshotView
-from urwid_assets.ui.widgets.dialogs.config_dialog import ConfigDialog, ConfigValue
+from urwid_assets.ui.widgets.dialogs.config_dialog.config_dialog import ConfigDialog
+from urwid_assets.ui.widgets.dialogs.config_dialog.config_value import ConfigValue
 from urwid_assets.ui.widgets.dialogs.message_box import MessageBox, MessageBoxButtons
 from urwid_assets.ui.widgets.keys import keys, KeyHandler
 from urwid_assets.ui.widgets.table import Column, Row, Table
 from urwid_assets.ui.widgets.views.linked_view import LinkedView
 from urwid_assets.ui.widgets.views.view_manager import ViewManager
-from urwid_assets.lib.redux.reselect import create_selector, SelectorOptions
-from urwid_assets.lib.redux.store import Store, Action
-from urwid_assets.state.snapshots.snapshots import Snapshot, UPDATE_SNAPSHOT, DELETE_SNAPSHOT, MOVE_SNAPSHOT_UP, \
-    MOVE_SNAPSHOT_DOWN
-from urwid_assets.state.state import State
 
 LOGGER = logging.getLogger(__name__)
 
@@ -32,23 +35,19 @@ class Header(WidgetWrap):
         super().__init__(LineBox(Text(u'Snapshots')))
 
 
-def _select_snapshots(state: State) -> tuple[Snapshot, ...]:
-    return state.snapshots
-
-
 def _select_row_from_snapshot(snapshot: Snapshot) -> Row[Snapshot]:
     return Row(
         snapshot.uuid,
         (
             snapshot.name,
-            snapshot.timestamp.isoformat(),
+            format_timestamp(snapshot.timestamp),
         ),
         snapshot,
     )
 
 
 select_rows = create_selector((
-    _select_snapshots,
+    select_snapshots,
 ), _select_row_from_snapshot, SelectorOptions(dimensions=(1,)))
 
 
@@ -59,11 +58,13 @@ class SnapshotsView(LinkedView):
                  store: Store[State],
                  view_manager: ViewManager,
                  content_view: ContentView,
-                 snapshot_view_builder: ClassAssistedBuilder[SnapshotView]) -> None:
+                 snapshot_view_builder: ClassAssistedBuilder[SnapshotView],
+                 config_dialog_builder: ClassAssistedBuilder[ConfigDialog]) -> None:
         self._store = store
         self._view_manager = view_manager
         self._content_view = content_view
         self._snapshot_view_builder = snapshot_view_builder
+        self._config_dialog_builder = config_dialog_builder
         self._table = Table(COLUMNS, select_rows(self._store.get_state()))
         self._keys = keys((
             KeyHandler(('h', 'H'), self._show_help),
@@ -111,9 +112,9 @@ class SnapshotsView(LinkedView):
         self._view_manager.open_dialog(help_dialog)
 
     def _edit_snapshot(self, snapshot: Snapshot):
-        edit_snapshot_dialog = ConfigDialog(
-            u'Edit: %s' % snapshot.name,
-            create_edit_snapshot_dialog_config(snapshot.name),
+        edit_snapshot_dialog = self._config_dialog_builder.build(
+            title=u'Edit: %s' % snapshot.name,
+            config_fields=create_snapshot_dialog_config(snapshot.name),
         )
         connect_signal(edit_snapshot_dialog, 'cancel', lambda _: self._view_manager.close_dialog())
         connect_signal(edit_snapshot_dialog, 'ok', self._dispatch_update_snapshot, snapshot)

@@ -2,24 +2,26 @@ import logging
 from typing import Callable
 from uuid import uuid1, UUID
 
-from injector import inject, singleton
+from injector import inject, singleton, ClassAssistedBuilder
 from urwid import Frame, Text, connect_signal, LineBox, WidgetWrap
 
+from urwid_assets.lib.data_sources.data_source_registry import DataSourceRegistry
+from urwid_assets.lib.redux.reselect import create_selector, SelectorOptions
+from urwid_assets.lib.redux.store import Store, Action
+from urwid_assets.selectors.selectors import select_data_sources
+from urwid_assets.state.saved.data_sources.data_sources import DataSourceInstance, MOVE_DATA_SOURCE_UP, \
+    MOVE_DATA_SOURCE_DOWN, UPDATE_DATA_SOURCE, ADD_DATA_SOURCE, DELETE_DATA_SOURCE
+from urwid_assets.state.saved.saved import Saved
+from urwid_assets.state.state import State
 from urwid_assets.ui.views.helpers.data_source_dialog_config import DefaultDataSourceDialogConfigFactory, \
     apply_data_source_to_data_source_dialog_config, data_source_from_config_values
-from urwid_assets.ui.widgets.dialogs.config_dialog import ConfigDialog, ConfigValue
+from urwid_assets.ui.widgets.dialogs.config_dialog.config_dialog import ConfigDialog
+from urwid_assets.ui.widgets.dialogs.config_dialog.config_value import ConfigValue
 from urwid_assets.ui.widgets.dialogs.message_box import MessageBox, MessageBoxButtons
 from urwid_assets.ui.widgets.keys import keys, KeyHandler
 from urwid_assets.ui.widgets.table import Column, Row, Table
 from urwid_assets.ui.widgets.views.linked_view import LinkedView
 from urwid_assets.ui.widgets.views.view_manager import ViewManager
-from urwid_assets.lib.data_sources.data_source_registry import DataSourceRegistry
-from urwid_assets.lib.redux.reselect import create_selector, SelectorOptions
-from urwid_assets.lib.redux.store import Store, Action
-from urwid_assets.state.data_sources.data_sources import MOVE_DATA_SOURCE_DOWN, MOVE_DATA_SOURCE_UP, DataSourceInstance, \
-    UPDATE_DATA_SOURCE, \
-    ADD_DATA_SOURCE, DELETE_DATA_SOURCE
-from urwid_assets.state.state import State
 
 LOGGER = logging.getLogger(__name__)
 
@@ -34,10 +36,6 @@ class Header(WidgetWrap):
         super().__init__(LineBox(Text(u'Data sources')))
 
 
-def _select_data_sources(state: State) -> tuple[DataSourceInstance, ...]:
-    return state.data_sources
-
-
 @singleton
 class DataSourcesView(LinkedView):
     @inject
@@ -45,11 +43,13 @@ class DataSourcesView(LinkedView):
                  store: Store[State],
                  view_manager: ViewManager,
                  default_data_source_dialog_config_factory: DefaultDataSourceDialogConfigFactory,
-                 data_source_registry: DataSourceRegistry) -> None:
+                 data_source_registry: DataSourceRegistry,
+                 config_dialog_builder: ClassAssistedBuilder[ConfigDialog]) -> None:
         self._store = store
         self._view_manager = view_manager
         self._default_data_source_dialog_config_factory = default_data_source_dialog_config_factory
         self._data_source_registry = data_source_registry
+        self._config_dialog_builder = config_dialog_builder
         self._select_rows = self._create_rows_selector()
         self._table = Table(COLUMNS, self._select_rows(self._store.get_state()))
         self._keys = keys((
@@ -66,9 +66,9 @@ class DataSourcesView(LinkedView):
             LineBox(Text(u'h - Help')),
         ), store)
 
-    def _create_rows_selector(self) -> Callable[[State], tuple[Row[DataSourceInstance], ...]]:
+    def _create_rows_selector(self) -> Callable[[Saved], tuple[Row[DataSourceInstance], ...]]:
         return create_selector((
-            _select_data_sources,
+            select_data_sources,
         ), self._select_row_from_data_source, SelectorOptions(dimensions=(1,)))
 
     def _select_row_from_data_source(self, data_source: DataSourceInstance) -> Row[DataSourceInstance]:
@@ -110,19 +110,20 @@ class DataSourcesView(LinkedView):
         self._view_manager.open_dialog(help_dialog)
 
     def _edit_data_source(self, data_source: DataSourceInstance):
-        edit_data_source_dialog = ConfigDialog(
-            u'Edit: %s' % data_source.name,
-            apply_data_source_to_data_source_dialog_config(self._default_data_source_dialog_config_factory.create(),
-                                                           data_source),
+        edit_data_source_dialog = self._config_dialog_builder.build(
+            title=u'Edit: %s' % data_source.name,
+            config_fields=apply_data_source_to_data_source_dialog_config(
+                self._default_data_source_dialog_config_factory.create(),
+                data_source),
         )
         connect_signal(edit_data_source_dialog, 'cancel', lambda _: self._view_manager.close_dialog())
         connect_signal(edit_data_source_dialog, 'ok', self._dispatch_update_data_source, data_source.uuid)
         self._view_manager.open_dialog(edit_data_source_dialog)
 
     def _add_data_source(self):
-        add_data_source_dialog = ConfigDialog(
-            u'Add data source',
-            self._default_data_source_dialog_config_factory.create(),
+        add_data_source_dialog = self._config_dialog_builder.build(
+            title=u'Add data source',
+            config_fields=self._default_data_source_dialog_config_factory.create(),
         )
         connect_signal(add_data_source_dialog, 'cancel', lambda _: self._view_manager.close_dialog())
         connect_signal(add_data_source_dialog, 'ok', self._dispatch_add_data_source, uuid1())

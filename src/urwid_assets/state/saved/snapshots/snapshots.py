@@ -19,24 +19,22 @@ MOVE_SNAPSHOT_DOWN = ACTION_TYPE_FACTORY.create('MOVE_SNAPSHOT_DOWN')
 MOVE_SNAPSHOT_UP = ACTION_TYPE_FACTORY.create('MOVE_SNAPSHOT_UP')
 MOVE_ASSET_SNAPSHOT_DOWN = ACTION_TYPE_FACTORY.create('MOVE_ASSET_SNAPSHOT_DOWN')
 MOVE_ASSET_SNAPSHOT_UP = ACTION_TYPE_FACTORY.create('MOVE_ASSET_SNAPSHOT_UP')
-UPDATE_ASSET_SNAPSHOT = ACTION_TYPE_FACTORY.create('UPDATE_ASSET_SNAPSHOT')
 
 
 @serializable()
 @dataclass(frozen=True)
-class AssetSnapshot(ListItem):
+class SnapshotAsset(ListItem):
     name: str
     amount: Decimal
-    price: Decimal | None = None
-    error: str | None = None
+    rate: Decimal | None = None
 
 
 @serializable()
 @dataclass(frozen=True)
 class Snapshot(ListItem):
     name: str
-    assets: tuple[AssetSnapshot, ...]
-    timestamp: datetime
+    assets: tuple[SnapshotAsset, ...]
+    timestamp: datetime | None
 
 
 class UnknownSnapshot(Exception):
@@ -51,7 +49,7 @@ class UnknownAssetSnapshot(Exception):
         self.uuid = uuid
 
 
-def get_asset_snapshot(uuid: UUID, asset_snapshots: tuple[AssetSnapshot, ...]):
+def get_asset_snapshot(uuid: UUID, asset_snapshots: tuple[SnapshotAsset, ...]):
     for asset_snapshot in asset_snapshots:
         if asset_snapshot.uuid == uuid:
             return asset_snapshot
@@ -77,7 +75,7 @@ def reducer(snapshots: tuple[Snapshot, ...], action: Action) -> tuple[Snapshot, 
     if action.type == MOVE_ASSET_SNAPSHOT_UP:
         (uuid, asset_snapshot) = action.payload
         assert isinstance(uuid, UUID)
-        assert isinstance(asset_snapshot, AssetSnapshot)
+        assert isinstance(asset_snapshot, SnapshotAsset)
         try:
             snapshot = get_snapshot(uuid, snapshots)
             return replace_item(replace(snapshot, assets=move_item_up(asset_snapshot, snapshot.assets)), snapshots)
@@ -86,19 +84,10 @@ def reducer(snapshots: tuple[Snapshot, ...], action: Action) -> tuple[Snapshot, 
     if action.type == MOVE_ASSET_SNAPSHOT_DOWN:
         (uuid, asset_snapshot) = action.payload
         assert isinstance(uuid, UUID)
-        assert isinstance(asset_snapshot, AssetSnapshot)
+        assert isinstance(asset_snapshot, SnapshotAsset)
         try:
             snapshot = get_snapshot(uuid, snapshots)
             return replace_item(replace(snapshot, assets=move_item_down(asset_snapshot, snapshot.assets)), snapshots)
-        except UnknownSnapshot:
-            return snapshots
-    if action.type == UPDATE_ASSET_SNAPSHOT:
-        (uuid, asset_snapshot) = action.payload
-        assert isinstance(uuid, UUID)
-        assert isinstance(asset_snapshot, AssetSnapshot)
-        try:
-            snapshot = get_snapshot(uuid, snapshots)
-            return replace_item(replace(snapshot, assets=replace_item(asset_snapshot, snapshot.assets)), snapshots)
         except UnknownSnapshot:
             return snapshots
     return _reducer(snapshots, action)

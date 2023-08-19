@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from urwid_assets.ui.widgets.dialogs.config_dialog import ConfigField, ConfigValue, \
-    PathConfigField, PathConfigValue
+from urwid_assets.ui.widgets.dialogs.config_dialog.config_field import ConfigField, PathConfigField
+from urwid_assets.ui.widgets.dialogs.config_dialog.config_value import ConfigValue, PathConfigValue
 
 
 def get_csv_export_path(config_values: tuple[ConfigValue, ...]) -> Path:
