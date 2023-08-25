@@ -16,7 +16,7 @@ class CLIModule(Module):
                  salt_file: Path,
                  data_file: Path,
                  init_with_test_data: bool,
-                 *data_sources: DataSource):
+                 data_sources: tuple[DataSource, ...]):
         self._salt_file = salt_file
         self._data_file = data_file
         self._init_with_test_data = init_with_test_data

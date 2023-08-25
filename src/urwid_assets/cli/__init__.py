@@ -74,7 +74,12 @@ def cli(ctx: click.Context,
     _LOGGER.info('data_file: %s', data_file)
     _LOGGER.info('salt_file: %s', salt_file)
     _LOGGER.info('init_with_test_data: %s', init_with_test_data)
-    ctx.obj = CLIModule(data_file, salt_file, init_with_test_data, Tiingo(), CryptoCompare())
+    ctx.obj = CLIModule(
+        salt_file=salt_file,
+        data_file=data_file,
+        init_with_test_data=init_with_test_data,
+        data_sources=(Tiingo(), CryptoCompare()),
+    )
 
 
 cli.add_command(ui)
