@@ -1,15 +1,16 @@
+from dataclasses import replace
 from uuid import UUID
 
 from injector import inject, singleton
 
+from urwid_assets.lib.data_sources.data_source_registry import DataSourceRegistry
+from urwid_assets.state.saved.data_sources.data_sources import DataSourceInstance
 from urwid_assets.ui.views.helpers.data_source_config import create_field_config_from_data_source, \
     data_source_config_from_value, \
     apply_data_source_config_choice
-from urwid_assets.ui.widgets.dialogs.config_dialog import StringConfigField, ConfigField, ChoiceConfigField, \
-    ConfigFieldChoice, \
-    ConfigValue, StringConfigValue, ChoiceConfigValue
-from urwid_assets.lib.data_sources.data_source_registry import DataSourceRegistry
-from urwid_assets.state.data_sources.data_sources import DataSourceInstance
+from urwid_assets.ui.widgets.dialogs.config_dialog.config_field import ConfigField, StringConfigField, \
+    ChoiceConfigField, ConfigFieldChoice
+from urwid_assets.ui.widgets.dialogs.config_dialog.config_value import ConfigValue, StringConfigValue, ChoiceConfigValue
 
 
 def apply_data_source_to_data_source_dialog_config(
@@ -17,19 +18,16 @@ def apply_data_source_to_data_source_dialog_config(
         data_source: DataSourceInstance,
 ) -> tuple[ConfigField, ...]:
     name_config = data_source_dialog_config[0]
+    assert isinstance(name_config, StringConfigField)
     type_config = data_source_dialog_config[1]
     assert isinstance(type_config, ChoiceConfigField)
     return (
-        StringConfigField(name_config.name, name_config.display_name, data_source.name),
-        ChoiceConfigField(
-            name=data_source_dialog_config[1].name,
-            display_name=data_source_dialog_config[1].display_name,
-            value=data_source.type,
-            choices=tuple(apply_data_source_config_choice(choice, data_source.config)
-                          if data_source.type == choice.value else choice
-                          for choice in type_config.choices),
-        ),
-
+        replace(name_config, value=data_source.name),
+        replace(type_config,
+                value=data_source.type,
+                choices=tuple(apply_data_source_config_choice(choice, data_source.config)
+                              if data_source.type == choice.value else choice
+                              for choice in type_config.choices)),
     )
 
 

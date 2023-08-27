@@ -1,8 +1,9 @@
 import logging
 
-from commands.ui.widgets.selectable_text import SelectableText
-from commands.ui.widgets.views.view import View
 from urwid import Text, Divider, Columns, Button, Pile, ListBox, SimpleFocusListWalker, AttrMap, connect_signal, Frame
+
+from urwid_assets.ui.widgets.selectable_text import SelectableText
+from urwid_assets.ui.widgets.views.view import View
 
 LOGGER = logging.getLogger()
 
@@ -28,7 +29,9 @@ class _SimpleList(ListBox):
 
 
 class _Frame(Frame):
-    signals = ['ok']
+    signals = [
+        'cancel'
+    ]
 
     def __init__(self, title: str, simple_list: _SimpleList):
         super().__init__(
@@ -42,7 +45,7 @@ class _Frame(Frame):
                 Columns((
                     Text(u''),
                     Text(u''),
-                    Button(u'Ok', lambda _: self._emit('ok')),
+                    Button(u'Cancel', lambda _: self._emit('cancel')),
                 )),
             )),
         )
@@ -61,7 +64,7 @@ class _Frame(Frame):
 
 class ListDialog(View):
     signals = [
-        'ok',
+        'cancel',
         'select',
     ]
 
@@ -72,11 +75,11 @@ class ListDialog(View):
         self._simple_list = _SimpleList(entries, selected)
         connect_signal(self._simple_list, 'select', self._select)
         frame = _Frame(title, self._simple_list)
-        connect_signal(frame, 'ok', self._ok)
+        connect_signal(frame, 'cancel', self._cancel)
         super().__init__(frame)
 
-    def _ok(self, _):
-        self._emit('ok')
+    def _cancel(self, _):
+        self._emit('cancel')
 
     def _select(self, _, selected: int):
         self._emit('select', selected)

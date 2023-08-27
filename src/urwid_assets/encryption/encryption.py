@@ -1,6 +1,7 @@
 import base64
 import logging
 import secrets
+from json import dumps, loads
 
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
@@ -10,7 +11,10 @@ from urwid_assets.cli.cli_types import SaltFile, DataFile
 from urwid_assets.lib.redux.reducer import Action
 from urwid_assets.lib.redux.store import Store
 from urwid_assets.lib.serialization.serialization import serialize, deserialize
-from urwid_assets.state.state import State, SET_STATE
+from urwid_assets.migration.migrate import migrate
+from urwid_assets.selectors.selectors import select_saved
+from urwid_assets.state.saved.saved import Saved, SET_SAVED
+from urwid_assets.state.state import State
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,10 +82,10 @@ class Encryption:
 
     def _encrypt(self):
         _LOGGER.info('encrypt')
-        state = self._store.get_state()
-        serialized = serialize(state)
+        saved = select_saved(self._store.get_state())
+        serialized = serialize(saved)
         self._data_file.absolute().parent.mkdir(parents=True, exist_ok=True)
-        self._data_file.write_bytes(self._fernet.encrypt(serialized.encode()))
+        self._data_file.write_bytes(self._fernet.encrypt(dumps(serialized).encode()))
 
     def _decrypt(self):
         _LOGGER.info('export')
@@ -89,8 +93,8 @@ class Encryption:
             encrypted = self._data_file.read_bytes()
             try:
                 serialized = self._fernet.decrypt(encrypted)
-                state = deserialize(State, serialized.decode())
-                self._store.dispatch(Action(SET_STATE, state))
+                saved = deserialize(Saved, migrate(loads(serialized.decode())))
+                self._store.dispatch(Action(SET_SAVED, saved))
             except InvalidToken as invalid_token:
                 raise DecryptionFailure(invalid_token)
 
