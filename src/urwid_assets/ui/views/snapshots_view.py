@@ -1,7 +1,8 @@
 import logging
+from decimal import Decimal
 
 from injector import inject, singleton, ClassAssistedBuilder
-from urwid import Frame, Text, connect_signal, LineBox, WidgetWrap
+from urwid import Frame, Text, connect_signal, LineBox, WidgetWrap, RIGHT
 
 from urwid_assets.cli.ui import ContentView
 from urwid_assets.lib.redux.reselect import create_selector, SelectorOptions
@@ -10,7 +11,7 @@ from urwid_assets.selectors.selectors import select_snapshots
 from urwid_assets.state.saved.snapshots.snapshots import Snapshot, MOVE_SNAPSHOT_UP, MOVE_SNAPSHOT_DOWN, \
     UPDATE_SNAPSHOT, DELETE_SNAPSHOT
 from urwid_assets.state.state import State
-from urwid_assets.ui.views.helpers.format import format_timestamp
+from urwid_assets.ui.views.helpers.format import format_timestamp, format_currency
 from urwid_assets.ui.views.helpers.snapshot_dialog_config import create_snapshot_dialog_config, \
     snapshot_from_edit_config_values
 from urwid_assets.ui.views.snapshot_view import SnapshotView
@@ -25,8 +26,9 @@ from urwid_assets.ui.widgets.views.view_manager import ViewManager
 LOGGER = logging.getLogger(__name__)
 
 COLUMNS = (
-    Column(1, u'Name'),
-    Column(1, u'Timestamp'),
+    Column(2, u'Name'),
+    Column(1, u'Timestamp', RIGHT),
+    Column(1, u'Value', RIGHT),
 )
 
 
@@ -36,11 +38,14 @@ class Header(WidgetWrap):
 
 
 def _select_row_from_snapshot(snapshot: Snapshot) -> Row[Snapshot]:
+    values = tuple(snapshot_asset.rate * snapshot_asset.amount if snapshot_asset.rate is not None else Decimal(0.0)
+                   for snapshot_asset in snapshot.assets)
     return Row(
         snapshot.uuid,
         (
             snapshot.name,
             format_timestamp(snapshot.timestamp),
+            format_currency(sum(values)),
         ),
         snapshot,
     )
