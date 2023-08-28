@@ -48,13 +48,18 @@ options
 
 ## TODO
 
-- split rates from assets to allow display of different currencies independent of data source pairs
-    - apply dijkstra for shortest path between pairs
-    - apply weights (cost) for less desirable conversions (eg, higher cost for less liquid pairs)
 - fix move list item focus stickiness in table (scroll and not move?)
-- delete assets on deletion of data source (after confirm)
-- prevent add asset unless there is at least one data source
+- field validation in config dialogs
+  - date time
+  - integer
+  - decimal
+- delete assets/rates on deletion of symbol (after confirm)
+  - Or block the delete with a useful error report
+- prevent add asset unless there is at least one symbol
+  - Or better still allow add symbol from add asset dialog
+- prevent add rate unless there is at least one symbol (2?)
+  - Or better still allow add symbol from add rate dialog
+- config file instead of (or in addition to) command line options
 - change passphrase
 - more documentation
-- mouse click handling (double clicks)
-- field validation in config dialogs
+- mouse click handling (double clicks) and generally better usability (enter to submit or change field, tabbing, etc)
