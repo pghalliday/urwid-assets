@@ -48,7 +48,6 @@ options
 
 ## TODO
 
-- fix move list item focus stickiness in table (scroll and not move?)
 - field validation in config dialogs
   - date time
   - integer
@@ -62,4 +61,5 @@ options
 - config file instead of (or in addition to) command line options
 - change passphrase
 - more documentation
+- fix move list item focus stickiness in table (scroll and not move?)
 - mouse click handling (double clicks) and generally better usability (enter to submit or change field, tabbing, etc)
