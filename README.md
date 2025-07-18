@@ -43,7 +43,7 @@ Import from exported JSON (encrypt)
 urwid-assets import [EXPORT_FILE=export.json]
 ```
 
-By default, data, salt and log files will be created under `~/.urwid/` but these paths can be configured through the CLI
+By default, data, salt and log files will be created under `~/.urwid-assets/` but these paths can be configured through the CLI
 options
 
 ## TODO
